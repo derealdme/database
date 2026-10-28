@@ -108,4 +108,6 @@ Run PostgreSQL and MongoDB yourself, create a `quant` database and user, then se
 - `docs/`: architecture, audited data facts, methods, demo plan and verification status.
 - `scripts/audit_data.py`: reproducible read-only source audit.
 
-Read `docs/VERIFICATION.md` before treating this build as submission-ready. Native Docker execution, concurrency testing and team review are required final checks. Submission report, PowerPoint and each member's video must reflect your actual work and measurements; this code package includes a report outline, not fabricated final findings.
+Read `docs/PROGRESS.md` for current results and `docs/VERIFICATION.md` for historical v0.1 evidence before treating this build as submission-ready. Native Docker execution, concurrency testing and team review are required final checks. Submission report, PowerPoint and each member's video must reflect your actual work and measurements; this code package includes a report outline, not fabricated final findings.
+
+CI uses Ubuntu 22.04 because MongoDB 8.0 failed its startup kernel compatibility check on the ubuntu-latest runner. If Docker reports SERVER-121912 on your machine, use a supported host/kernel combination rather than disabling database safety checks. Official issue: https://jira.mongodb.org/browse/SERVER-121912 .

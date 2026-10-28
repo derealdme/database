@@ -61,6 +61,26 @@ jobs:
         run: python -m app.benchmark --limit 500 --repeats 3 > ../benchmark-ci.json
       - name: Build deployment image
         run: docker build -t quantscore-ci .
+      - name: Smoke test built application container
+        run: |
+          docker run -d --name quant-app --network host -e DATABASE_URL -e MONGO_URL quantscore-ci
+          python - <<'PYTEST'
+          import time, urllib.request, json
+          for attempt in range(30):
+              try:
+                  with urllib.request.urlopen('http://127.0.0.1:8000/api/health',timeout=2) as r:
+                      assert json.load(r)=={'postgres':'ok','mongodb':'ok'}
+                  break
+              except Exception:
+                  if attempt==29: raise
+                  time.sleep(1)
+          for path in ['/', '/docs', '/api/stocks?limit=2']:
+              with urllib.request.urlopen('http://127.0.0.1:8000'+path,timeout=5) as r:
+                  assert r.status==200
+          PYTEST
+      - name: Collect container logs
+        if: always()
+        run: docker logs quant-app > container.log 2>&1 || true
       - name: Retain verification results
         if: always()
         uses: actions/upload-artifact@v4
@@ -69,3 +89,4 @@ jobs:
           path: |
             test-results.xml
             benchmark-ci.json
+            container.log
