@@ -1,0 +1,22 @@
+{
+  "browser": "Chromium 134 via Playwright 1.51.1",
+  "data": "Real imported historical data",
+  "desktop_viewport": [
+    1440,
+    1100
+  ],
+  "mobile_viewport": [
+    390,
+    844
+  ],
+  "browser_errors": [],
+  "mobile_document_overflow": false,
+  "passed_flows": [
+    "stock details and score breakdown",
+    "MongoDB research note create, edit, delete",
+    "AAPL/MSFT comparison",
+    "portfolio create, buy, sell, delete",
+    "AAPL news filtering"
+  ],
+  "database_environment": "PGlite socket adapter and native temporary MongoDB 8.2.6; not Docker Compose"
+}

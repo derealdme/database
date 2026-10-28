@@ -1,0 +1,10 @@
+node_modules/
+__pycache__/
+.pytest_cache/
+.env
+*.pyc
+frontend/dist/
+data/*.zip
+backend/static/
+test-results.xml
+benchmark-ci.json
