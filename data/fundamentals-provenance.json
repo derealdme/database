@@ -1,0 +1,45 @@
+{
+  "source": "SEC companyfacts API",
+  "as_of": "2020-06-05",
+  "accepted": 52,
+  "sectors": {
+    "Information Technology": 5,
+    "Health Care": 5,
+    "Utilities": 5,
+    "Real Estate": 5,
+    "Consumer Discretionary": 5,
+    "Materials": 5,
+    "Financials": 5,
+    "Industrials": 5,
+    "Energy": 5,
+    "Consumer Staples": 5,
+    "Telecommunication Services": 2
+  },
+  "skipped": [
+    {
+      "ticker": "GS",
+      "reason": "No matching annual USD revenue pair and net income available by cutoff"
+    },
+    {
+      "ticker": "MS",
+      "reason": "No matching annual USD revenue pair and net income available by cutoff"
+    },
+    {
+      "ticker": "SO",
+      "reason": "HTTP Error 403: Forbidden"
+    },
+    {
+      "ticker": "XOM",
+      "reason": "No matching annual USD revenue pair and net income available by cutoff"
+    },
+    {
+      "ticker": "APA",
+      "reason": "No matching annual USD revenue pair and net income available by cutoff"
+    },
+    {
+      "ticker": "APC",
+      "reason": "No matching annual USD revenue pair and net income available by cutoff"
+    }
+  ],
+  "selection": "Purposeful bounded sample, not representative coverage; financial snapshot valuation/dividends remain undated."
+}

@@ -10,3 +10,4 @@ test-results.xml
 benchmark-ci.json
 data/sec-cache/
 data/.*
+data/benchmark-prices.csv.gz

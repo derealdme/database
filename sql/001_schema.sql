@@ -94,7 +94,7 @@ SELECT m.*,c.valuation,c.dividend,round(.75*c.valuation+.25*c.dividend,2) AS sco
  jsonb_build_object('pe',c.scores->'pe','ps',c.scores->'ps','pb',c.scores->'pb','dividend_yield',c.scores->'dividend_yield') AS factor_scores,
  jsonb_build_object('pe',coalesce(n.peers->'pe','0'::jsonb),'ps',coalesce(n.peers->'ps','0'::jsonb),
  'pb',coalesce(n.peers->'pb','0'::jsonb),'dividend_yield',coalesce(n.peers->'dividend_yield','0'::jsonb)) AS peer_counts,
- 'Valuation 75% + dividend 25%; fundamental growth and profitability unavailable'::text AS score_model
+ 'Valuation 75% + dividend 25%; growth and profitability excluded from baseline'::text AS score_model
 FROM stock_metrics m LEFT JOIN components c USING(ticker) LEFT JOIN counts n ON n.sector=m.sector;
 
 -- Compatible migration: old portfolios remain fixed raw-close simulations.

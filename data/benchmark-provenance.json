@@ -1,0 +1,11 @@
+{
+  "source": "User-supplied listingdayto2023.zip",
+  "source_sha256": "c2115176a826d6f4bd1867d4bfc933cb30a83b72a14eedd09fdad1976d1a892d",
+  "selection": "Financial-universe tickers; 2019-01-01 through 2020-06-05; ticker/date ascending; first 50000 rows",
+  "rows": 50000,
+  "tickers": 139,
+  "first_date": "2019-01-02",
+  "last_date": "2020-06-05",
+  "fixture_sha256": "943e23200e1c046ce39150def0846ea039b2dd0727735f483439731dca08d6ca",
+  "scope": "Factual ticker/date/volume tuples only; bounded biased workload, not a market-wide or concurrent benchmark."
+}
