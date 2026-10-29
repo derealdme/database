@@ -15,6 +15,10 @@ def seed():
         for t,pe,ps,pb,dy,sector in [('AAPL',10,2,3,1,'Technology'),('MSFT',20,4,6,2,'Technology'),('TIED',20,4,6,0,'Technology'),('MISSING',-1,None,None,None,'Other')]:
             c.execute('INSERT INTO stocks(ticker,name,sector_id) SELECT %s,%s,id FROM sectors WHERE name=%s',(t,t+' synthetic fixture',sector))
             c.execute('INSERT INTO financials(ticker,pe,ps,pb,dividend_yield) VALUES(%s,%s,%s,%s,%s)',(t,pe,ps,pb,dy))
+        for t,revenue,income in [('AAPL',120,12),('MSFT',150,30)]:
+            c.execute("""INSERT INTO annual_fundamentals VALUES
+              (%s,'2020-06-05','2019-01-01','2019-12-31','2018-12-31',%s,100,%s,
+              '2020-02-01','Revenues','NetIncomeLoss','SYNTHETIC','SYNTHETIC','SYNTHETIC','https://example.com/synthetic')""",(t,revenue,income))
         rows=[]
         for t in ['AAPL','MSFT']:
             for i in range(522):

@@ -68,7 +68,7 @@ def test_mongo_notes_and_aggregation():
 def test_sql_constraints():
     import psycopg
     with pytest.raises(psycopg.errors.CheckViolation):
-        with sql() as c:c.execute("INSERT INTO portfolios(user_id,name,initial_cash,cash,as_of) VALUES(1,'invalid',100,-1,'2020-06-05')")
+        with sql() as c:c.execute("INSERT INTO portfolios(user_id,name,initial_cash,cash,as_of,started_on) VALUES(1,'invalid',100,-1,'2020-06-05','2020-06-05')")
     with pytest.raises(psycopg.errors.ForeignKeyViolation):
         with sql() as c:c.execute("INSERT INTO financials(ticker) VALUES('NOTREAL')")
 
@@ -80,7 +80,7 @@ def test_mongo_validator():
 def test_concurrent_buys_cannot_overspend():
     from concurrent.futures import ThreadPoolExecutor
     with sql() as c:
-        price=c.execute("SELECT close FROM prices WHERE ticker='AAPL' AND date<='2020-06-05' ORDER BY date DESC LIMIT 1").fetchone()['close']
+        price=c.execute("SELECT adjusted_close AS close FROM prices WHERE ticker='AAPL' AND date<='2020-06-05' ORDER BY date DESC LIMIT 1").fetchone()['close']
     r=client.post('/api/portfolios',json={'name':'Concurrent test','as_of':'2020-06-05','initial_cash':str((price*Decimal('1.5')).quantize(Decimal('.0001')))})
     assert r.status_code==201
     pid=r.json()['id'];url=f'/api/portfolios/{pid}'
@@ -105,3 +105,54 @@ def test_sql_scoring_matches_independent_reference():
             x,y=result['factor_scores'][factor],expected['factor_scores'][factor]
             if y is None:assert x is None
             else:assert float(x)==pytest.approx(y,abs=1e-9)
+
+
+def test_pagination_has_stable_order():
+    first=client.get('/api/stocks?sort=score&limit=1').json()
+    second=client.get('/api/stocks?sort=score&limit=1&offset=1').json()
+    assert first['total']==second['total'] and first['has_more']
+    assert first['items'][0]['ticker']!=second['items'][0]['ticker']
+    assert client.get('/api/stocks?offset=-1').status_code==422
+
+def test_four_factor_score_uses_sourced_components():
+    r=client.get('/api/stocks/AAPL?model=four_factor');assert r.status_code==200,r.text
+    s=r.json();assert s['fundamental_peers']>=2
+    expected=sum(float(s[k]) for k in ['valuation','dividend','growth','profitability'])/4
+    assert float(s['score'])==pytest.approx(expected,abs=.011)
+    assert s['filed_on']<=s['fundamentals_as_of'] and s['source_url']
+    assert client.get('/api/stocks?model=unknown').status_code==422
+
+def test_date_range_validation_and_news_pagination():
+    for path in ['/api/stocks/AAPL/prices','/api/news','/api/sentiment']:
+        assert client.get(path+'?start=2020-06-05&end=2019-01-01').status_code==422
+    assert client.get('/api/news?stock=AAPL&start=1900-01-01&end=1900-01-02').json()==[]
+    assert client.get('/api/sentiment?stock=AAPL&start=1900-01-01&end=1900-01-02').json()==[]
+    a=client.get('/api/news?limit=1').json();b=client.get('/api/news?limit=1&offset=1').json()
+    assert not b or a[0]['id']!=b[0]['id']
+
+def test_advance_and_transaction_aware_performance():
+    r=client.post('/api/portfolios',json={'name':'Performance test','as_of':'2020-01-02','initial_cash':'10000'})
+    assert r.status_code==201,r.text
+    url=f"/api/portfolios/{r.json()['id']}"
+    try:
+        buy=client.post(url+'/trades',json=request(quantity='2'));assert buy.status_code==201,buy.text
+        assert client.post(url+'/advance',json={'as_of':'2020-02-03'}).status_code==200
+        sell=client.post(url+'/trades',json=request(side='SELL'));assert sell.status_code==201,sell.text
+        assert client.post(url+'/advance',json={'as_of':'2020-03-02'}).status_code==200
+        history=client.get(url+'/performance').json();p=client.get(url).json()
+        assert history['complete'] and len(history['items'])>20
+        assert float(history['items'][-1]['value'])==pytest.approx(float(p['value']))
+        # A future sale cannot change the holdings/cash on the first simulation day.
+        assert float(history['items'][0]['value'])==pytest.approx(10000,abs=.001)
+        assert history['total_return']==pytest.approx(float(p['value'])/10000-1)
+        ledger=client.get(url+'/trades?limit=1').json();assert ledger['total']==2 and ledger['has_more']
+        assert ledger['items'][0]['traded_on']=='2020-02-03'
+        assert client.get(url+'/trades?limit=1&offset=1').json()['items'][0]['id']==buy.json()['id']
+        assert client.post(url+'/advance',json={'as_of':'2020-01-01'}).status_code==422
+        assert client.post(url+'/advance',json={'as_of':'2099-01-01'}).status_code==422
+        assert client.get(url).json()['as_of']=='2020-03-02'
+    finally:client.delete(url)
+
+def test_legacy_portfolio_cannot_advance(portfolio):
+    with sql() as c:c.execute("UPDATE portfolios SET price_basis='close' WHERE id=%s",(portfolio,))
+    assert client.post(f'/api/portfolios/{portfolio}/advance',json={'as_of':'2020-06-06'}).status_code==409

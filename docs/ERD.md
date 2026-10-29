@@ -66,6 +66,8 @@ erDiagram
     numeric initial_cash "20 digits; 4 decimals"
     numeric cash "20 digits; 4 decimals"
     date as_of
+    date started_on
+    text price_basis
     timestamptz created_at
   }
   holdings {
@@ -82,6 +84,7 @@ erDiagram
     numeric price "20 digits; 8 decimals"
     numeric amount "20 digits; 4 decimals"
     date execution_date
+    date traded_on
     uuid request_id UK
     timestamptz created_at
   }
@@ -112,3 +115,7 @@ The holdings junction resolves the many-to-many portfolio/stock relationship. De
 `stock_metrics` is the joined company snapshot; `sector_averages` provides conditional aggregates; `stock_scores` uses full-sector window ranks, tie counts and peer counts before filtering.
 
 MongoDB `news` and `notes` link by canonical ticker. This is an application convention, not a cross-database foreign key. See ARCHITECTURE.md for document fields, indexes, validator and aggregation pipeline.
+
+## SEC annual sample
+
+`stocks` has zero or one `annual_fundamentals` row, linked by ticker PK/FK. The table stores date fields `as_of`, `period_start`, `period_end`, `previous_period_end`, `filed_on`; numeric `revenue`, `previous_revenue`, `net_income`; text `revenue_tag`, `income_tag`, `current_accn`, `previous_accn`, `income_accn`, `source_url`. All are non-null. Revenue inputs must be positive; periods are ordered and filed_on cannot exceed as_of. This is one selected annual comparison per company, not a historical multi-snapshot warehouse. `research_scores` extends `stock_scores` with growth/margin window ranks and the optional four-factor total.

@@ -96,3 +96,41 @@ SELECT m.*,c.valuation,c.dividend,round(.75*c.valuation+.25*c.dividend,2) AS sco
  'pb',coalesce(n.peers->'pb','0'::jsonb),'dividend_yield',coalesce(n.peers->'dividend_yield','0'::jsonb)) AS peer_counts,
  'Valuation 75% + dividend 25%; fundamental growth and profitability unavailable'::text AS score_model
 FROM stock_metrics m LEFT JOIN components c USING(ticker) LEFT JOIN counts n ON n.sector=m.sector;
+
+-- Compatible migration: old portfolios remain fixed raw-close simulations.
+ALTER TABLE portfolios ADD COLUMN IF NOT EXISTS started_on date;
+UPDATE portfolios SET started_on=as_of WHERE started_on IS NULL;
+ALTER TABLE portfolios ALTER COLUMN started_on SET NOT NULL;
+ALTER TABLE portfolios ADD COLUMN IF NOT EXISTS price_basis text NOT NULL DEFAULT 'close'
+ CHECK(price_basis IN ('close','adjusted_close'));
+ALTER TABLE trades ADD COLUMN IF NOT EXISTS traded_on date;
+UPDATE trades SET traded_on=execution_date WHERE traded_on IS NULL;
+ALTER TABLE trades ALTER COLUMN traded_on SET NOT NULL;
+CREATE INDEX IF NOT EXISTS trades_history_idx ON trades(portfolio_id,traded_on,ticker);
+
+CREATE TABLE IF NOT EXISTS annual_fundamentals (
+ ticker text PRIMARY KEY REFERENCES stocks(ticker), as_of date NOT NULL,
+ period_start date NOT NULL, period_end date NOT NULL, previous_period_end date NOT NULL,
+ revenue numeric NOT NULL CHECK(revenue>0), previous_revenue numeric NOT NULL CHECK(previous_revenue>0),
+ net_income numeric NOT NULL, filed_on date NOT NULL,
+ revenue_tag text NOT NULL, income_tag text NOT NULL,
+ current_accn text NOT NULL, previous_accn text NOT NULL, income_accn text NOT NULL, source_url text NOT NULL,
+ CHECK(period_start<period_end AND previous_period_end<period_end AND period_end<=filed_on AND filed_on<=as_of)
+);
+CREATE OR REPLACE VIEW research_scores AS
+WITH metrics AS (
+ SELECT f.*,s.sector_id,100*(revenue/previous_revenue-1) AS revenue_growth,
+ 100*net_income/revenue AS net_margin FROM annual_fundamentals f JOIN stocks s USING(ticker)
+), ranked AS (
+ SELECT *,count(*) OVER(PARTITION BY sector_id,as_of) AS fundamental_peers,
+ (rank() OVER(PARTITION BY sector_id,as_of ORDER BY revenue_growth)-1+
+ count(*) OVER(PARTITION BY sector_id,as_of,revenue_growth)/2.0)/count(*) OVER(PARTITION BY sector_id,as_of)*100 AS growth,
+ (rank() OVER(PARTITION BY sector_id,as_of ORDER BY net_margin)-1+
+ count(*) OVER(PARTITION BY sector_id,as_of,net_margin)/2.0)/count(*) OVER(PARTITION BY sector_id,as_of)*100 AS profitability
+ FROM metrics
+)
+SELECT s.*,f.revenue_growth,f.net_margin,f.growth,f.profitability,
+ f.fundamental_peers,f.as_of AS fundamentals_as_of,f.period_end,f.previous_period_end,f.filed_on,
+ f.source_url,f.current_accn,f.previous_accn,f.income_accn,
+ CASE WHEN f.fundamental_peers>=2 THEN round((s.valuation+s.dividend+f.growth+f.profitability)/4,2) END AS four_factor_score
+FROM stock_scores s LEFT JOIN ranked f USING(ticker);

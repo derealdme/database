@@ -26,7 +26,7 @@ erDiagram
     STOCKS ||--o{ TRADES : references
 ```
 
-`import_runs` is the ninth table and records completed imports, source and JSONB counters. It is deliberately independent of operational entities.
+`annual_fundamentals` adds dated SEC annual facts and provenance as the tenth table. `import_runs` and records completed imports, source and JSONB counters. It is deliberately independent of operational entities.
 
 | Table | Key and purpose |
 |---|---|
@@ -35,9 +35,10 @@ erDiagram
 | financials | Ticker PK/FK; one undated supplied snapshot; numeric ratios and data-source text |
 | prices | Composite ticker/date PK; numeric OHLC/adjusted close, bigint volume |
 | users | Integer PK; seeded shared demo identity |
-| portfolios | Identity PK; user FK; numeric initial cash/cash; fixed date |
+| portfolios | Identity PK; user FK; numeric initial cash/cash; starting/current date and price basis |
 | holdings | Portfolio/ticker composite PK; resolves portfolio–stock many-to-many relation |
 | trades | Identity PK; portfolio/stock FKs; unique UUID retry key; side, quantity, price, amount, execution date |
+| annual_fundamentals | Ticker PK/FK; bounded annual revenue/income sample, cutoff and filing provenance |
 | import_runs | Identity PK; JSONB counters and timestamp |
 
 The stock/sector relationship separates repeated sector labels. Daily prices are separate from the one supplied financial snapshot, preventing duplicated financial ratios on every price row. Stored holdings and cash are deliberate transactional summaries maintained together with the ledger.

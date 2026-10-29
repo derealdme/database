@@ -8,3 +8,5 @@ data/*.zip
 backend/static/
 test-results.xml
 benchmark-ci.json
+data/sec-cache/
+data/.*

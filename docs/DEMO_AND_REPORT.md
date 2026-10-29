@@ -18,8 +18,8 @@ Keep background before relational demo, then NoSQL demo, then analysis, matching
 1. Search AAPL and show company/sector context; filter positive P/E <= 20 and dividend yield >= 1.
 2. Open a score breakdown and explain why lower positive P/E receives a higher valuation percentile, while negative/missing P/E does not become zero.
 3. Compare AAPL and MSFT. Explain the financial snapshot date limitation.
-4. Create a portfolio dated 2020-06-05; buy one AAPL share, then sell it. Submit an unaffordable trade and show unchanged cash and ledger.
-5. Show PostgreSQL constraints and row locking in source, not just UI screenshots. Native concurrent-request testing should be completed separately.
+4. Create a portfolio dated 2020-01-02; buy one AAPL adjusted-price unit, advance to 2020-02-03, inspect the performance chart, then sell it. Submit an unaffordable trade and show unchanged cash and ledger.
+5. Show PostgreSQL constraints and row locking in source, not just UI screenshots. Show the exact native CI run demonstrating concurrent-request protection.
 6. Filter news by AAPL. Show monthly Mongo aggregation and explain the lexicon's limitations.
 7. Create, edit and delete a research note to demonstrate document CRUD.
 8. Run the benchmark on identical data, verify equal output, explain the environment and avoid blanket SQL-versus-NoSQL claims.

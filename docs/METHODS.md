@@ -6,7 +6,7 @@ For each sector, valid positive P/E, P/S and P/B values are ranked with midrank 
 
 Valuation is the mean of available ratio scores, requiring at least two of three ratios. The overall score is 75% valuation plus 25% dividend, requiring both components. Missing components give N/A rather than silent reweighting. Peer counts and underlying metrics are displayed. The stock_scores SQL view computes ranks, tie counts and peer counts with window functions over the entire imported company universe before filtering so filtering does not alter peer rankings.
 
-This is an educational heuristic, not a validated investment model. High yield can reflect distress; low ratios can reflect risk. Sector means are sensitive to outliers. No claim is made that score ordering predicts returns. The original proposal's fundamental growth/profitability factors require additional data. This revision must be approved as the team's chosen scope before submission.
+This is an educational heuristic, not a validated investment model. High yield can reflect distress; low ratios can reflect risk. Sector means are sensitive to outliers. No claim is made that score ordering predicts returns. The optional four-factor model adds SEC annual facts as described below.
 
 ## Temporal integrity
 
@@ -24,6 +24,18 @@ This provides a reproducible pipeline and aggregation demonstration. It does not
 
 ## Portfolio risk
 
-The portfolio date is fixed on creation. Execution uses latest raw close on/before it, no more than seven days old. This supports a transactional allocation simulator without claiming to handle subsequent corporate actions. Mark-to-market is cash plus quantity times close.
+New portfolios use adjusted-close units and a simulation date that can only advance. Execution uses the latest adjusted close on/before that date, no more than seven days old. Both advance and trade operations lock the portfolio row. Adjusted prices incorporate provider adjustments; units are not literal historical shares. Reinvested distributions are implicit, with no additional dividend cash, fees or slippage. Legacy raw-close portfolios retain fixed dates. Mark-to-market uses the same basis as execution.
 
-For each current holding, normalise its historical adjusted-close series by adjusted close at the simulation date and multiply by current raw close and quantity. Sum across holdings on common dates, add fixed cash, and use up to 252 latest common observations. Daily simple returns yield sample standard deviation multiplied by sqrt(252). Maximum drawdown is the minimum value/running peak minus one. Fewer than three observations returns unavailable risk. Historical holdings composition is held constant: this is hypothetical exposure risk, not realised trading performance.
+For each current holding, normalise its historical adjusted-close series by adjusted close at the simulation date and multiply by current simulation-basis price and quantity. Sum across holdings on common dates, add fixed cash, and use up to 252 latest common observations. Daily simple returns yield sample standard deviation multiplied by sqrt(252). Maximum drawdown is the minimum value/running peak minus one. Fewer than three observations returns unavailable risk. Historical holdings composition is held constant: this is hypothetical exposure risk, not realised trading performance.
+
+## Four-factor SEC sample
+
+`scripts/fetch_fundamentals.py` extracts annual USD revenue and matching net income from SEC companyfacts, restricted to 10-K facts filed on or before 2020-06-05. Annual durations must be 330–400 days; prior-year ends must be 300–430 days apart; latest period must be at most 550 days old. Revenue must be positive. Latest eligible filings can restate earlier periods, but no filing after the cutoff is accepted. Matching annual start/end is required for income and revenue. Revenue tag, income tag, accession identifiers and source URL are retained. Revenue growth is `(revenue / previous_revenue - 1) * 100`; profitability is `net_income / revenue * 100`.
+
+Selection is purposeful, up to five eligible companies per source sector, not a representative market sample. Current SEC ticker mapping may omit renamed/delisted companies. The provenance JSON reports accepted and skipped records. Higher growth/margin gets higher sector/as-of midrank percentile. At least two sampled sector peers and all four components are required for the equal-weight combined score. Small peer groups make ranks coarse. Baseline valuation peers still use the full original sector universe, whereas growth/profitability peers use the smaller SEC sample. This asymmetry and the undated original ratios prohibit a point-in-time trading claim.
+
+## Transaction-aware performance
+
+For each imported trading date plus simulation endpoints, aggregate signed trade quantities whose `traded_on` is no later than that date. Cash equals initial cash minus buys plus sells. Value equals cash plus positive holdings valued at the most recent price on/before that date using the portfolio's price basis. A held asset with a missing or more-than-seven-day-old quote makes that day's value unavailable, and incomplete histories suppress total return. Total return is final value / initial cash - 1; deposits/withdrawals are unsupported. Multiple same-day trades appear in end-of-day balances. `execution_date` records the quote date; `traded_on` records the simulation date, preventing a weekend trade from being backdated into Friday's history.
+
+This NAV history differs from the trailing risk panel, which holds current composition constant. Changing source adjusted prices after import can change historical NAV; archive source checksums and do not mix provider revisions when interpreting results.

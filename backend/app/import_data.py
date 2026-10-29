@@ -105,4 +105,8 @@ if __name__=='__main__':
     a=parser.parse_args()
     if a.start>a.end:parser.error('start must precede end')
     init()
-    if not a.init_only:load(a.data,a.start,a.end)
+    if not a.init_only:
+        load(a.data,a.start,a.end)
+        if (a.data/'fundamentals.csv').exists():
+            from .import_fundamentals import load as load_fundamentals
+            load_fundamentals(a.data/'fundamentals.csv')

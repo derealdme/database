@@ -13,6 +13,8 @@ Prerequisite: Docker Desktop (or Docker Engine with the Compose plugin), running
    - `financialinformation.zip`
    - `listingdayto2023.zip`
    - `financialnews.zip`
+The normalized SEC sample is included in the repository and imported automatically alongside the original datasets.
+
 3. Open a terminal in the project folder and run:
 
 ```sh
@@ -49,9 +51,9 @@ The API currently shares one local classroom demo user. This is deliberate: it i
 
 ## Important scope decisions
 
-- Scoring is an explicitly revised **valuation 75% / dividend 25%** model. The uploaded CSV does not support the proposal's fundamental growth/profitability factors. Those remain unavailable; no invented data or mislabeled price momentum is used. Review this scope adjustment with the team.
-- Portfolio trading happens at a fixed simulation date. Trades use the latest close on or before that date (maximum seven-day staleness), not the company snapshot price. No real orders are sent.
-- Risk is trailing volatility and maximum drawdown of **fixed current holdings**, using adjusted returns anchored to raw prices at the simulation date. It is not realised portfolio performance. No fees, slippage or dividend cash flows are modelled.
+- Scoring offers the baseline **valuation 75% / dividend 25%** and a four-factor SEC sample model (25% each valuation, dividend, annual revenue growth and net margin). The committed `data/fundamentals.csv` retains filing provenance. Missing coverage or fewer than two fundamental peers produces N/A. Original valuation/dividend data remains undated, so this is mixed-date research, not a score backtest.
+- New portfolios trade adjusted-price units and can advance forward through imported dates. Quotes must be at most seven days old. Adjusted units assume reinvested distributions, not actual share quantities; no real orders are sent. Existing raw-close portfolios retain their fixed-date policy.
+- Risk is trailing volatility and maximum drawdown of **fixed current holdings**, using adjusted returns anchored to the portfolio price basis. A separate transaction-aware daily value chart reconstructs actual simulated cash and holdings from the ledger. No fees, slippage or dividend cash flows are modelled.
 - News sentiment is an explicitly unvalidated keyword baseline. It can fail on negation and financial context.
 - Price-file ticker mismatches are rejected. Corporate renames are not guessed.
 - Source high/low labels are reversed for all 505 financial records. Import stores the lower value as low and higher as high; raw ZIPs remain unchanged.
@@ -104,7 +106,7 @@ Run PostgreSQL and MongoDB yourself, create a `quant` database and user, then se
 - `backend/app/`: API, importer, scoring/risk, Mongo indexes, benchmark.
 - `backend/tests/`: unit, validation and opt-in database tests.
 - `frontend/`: React source and locked npm dependencies.
-- `sql/001_schema.sql`: nine relational tables, constraints, indexes and views.
+- `sql/001_schema.sql`: ten relational tables, constraints, indexes and views.
 - `docs/`: architecture, audited data facts, methods, demo plan and verification status.
 - `scripts/audit_data.py`: reproducible read-only source audit.
 
