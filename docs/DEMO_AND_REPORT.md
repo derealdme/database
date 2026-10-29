@@ -36,7 +36,7 @@ Keep background before relational demo, then NoSQL demo, then analysis, matching
 8. Limitations, alternatives, contributions and reflections (1 page).
 9. Conclusion (0.5 page).
 
-Use the module's actual template from XSite; this is only an outline. Include code/setup manual separately. Never describe unrun tests, synthetic screenshots, or planned features as completed. The final report and PowerPoint have not been generated in this code milestone; use verified results and team review before final authoring.
+Use the module's actual template from XSite; this is only an outline. Include code/setup manual separately. Never describe unrun tests, synthetic screenshots, or planned features as completed. REPORT_DRAFT.md now provides substantive content, and the private package includes the ten-slide editable PowerPoint. Final report formatting, authentic reflections and team review remain.
 
 ## Questions each member should be able to answer
 

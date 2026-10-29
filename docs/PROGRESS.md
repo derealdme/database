@@ -1,24 +1,29 @@
 # Submission progress — 29 October 2026
 
-## Completed in this milestone
-- Recovered the saved v0.1 application after workspace maintenance.
-- Restored SQL-based scoring using sector-partitioned window functions and JSONB breakdowns.
-- Added a parity test against the independent Python reference, including tied and missing metrics.
-- Added explicitly synthetic, guarded CI fixtures, separate from real research data.
-- Added GitHub Actions for PostgreSQL 17/MongoDB 8 integration, simultaneous trades, frontend build, benchmark equivalence and deployment-image build.
+## Built
 
-## Verification
-The historical v0.1 evidence is in VERIFICATION.md. It must not be treated as verification of subsequent edits. Native PostgreSQL 17/MongoDB 8 CI passed at commit 249f994ffa642ac84d8a151ef102f2a2179bb057: https://github.com/derealdme/database/actions/runs/40747640535 . This includes simultaneous-buy protection, SQL/reference scoring parity, frontend build, benchmark equivalence and Docker image build. CI fixtures do not establish data quality or financial validity.
+- SQL-native baseline scoring and optional four-factor model with traceable SEC annual facts for 52 companies across 11 sectors. Missing data stays N/A; mixed-date limitations are explicit.
+- Compatible migration for portfolio starting dates, simulation trade dates and price basis. New adjusted-price portfolios advance forward and reconstruct daily NAV from the transaction ledger. Legacy portfolios retain their original policy.
+- Interface controls for scoring model, chart/news date ranges, stock/news/ledger pagination and portfolio advancement/performance.
+- Native database, concurrency, parser, migration and browser checks.
+- Updated schema/method documentation, user manual, substantive report draft and ten-slide editable demo deck. The deck is included in the private package rather than requiring a public data upload.
+- Reproducible private source/data/manual packaging with per-file SHA-256 manifest.
+- Real-price benchmark preparation and CSV-input support, with 50,000 factual ticker/date/volume rows across 139 tickers prepared locally.
 
-## Remaining work, in priority order
-1. Establish suitable dated fundamentals for the proposed growth/profitability factors, or explicitly adopt a justified two-factor scope. Do not invent values or relabel price momentum as fundamental growth.
-2. Extend the fixed-date portfolio simulator with a documented time progression/corporate-action policy if retaining the broader proposal scope.
-3. Add date controls, pagination and more edge-case coverage; strengthen sentiment evaluation.
-4. Verify Docker setup on a clean machine and run meaningful benchmarks on real imported data, retaining environment and query plans.
-5. Complete final report using the XSite template, PowerPoint, and final code/data/manual package.
-6. Team-only: actual contributions/reflections, peer review, and all five members' presentation recording.
+## Verified
+
+Commit `90e464bbc77410c6bed12ae017538974bb79c099` passed native CI: https://github.com/derealdme/database/actions/runs/40813508915 . Results: 28 backend tests, five SEC extraction tests, repeated schema initialization, frontend build, equivalent-query benchmark smoke, Docker build, built-container health/API/static checks and Chromium workflows. PostgreSQL 17 and MongoDB 8.0 ran on Ubuntu 22.04. Synthetic CI fixtures establish functional behavior, not financial-data quality or real-data performance. Subsequent documentation/package-only edits do not change that application verification boundary.
+
+Historical v0.1 real-data evidence remains in VERIFICATION.md and is not relabelled as a native v0.2 benchmark. The demo deck was rendered and checked as an editable PPTX, but has not been opened in Microsoft PowerPoint here.
+
+## Still needed for submission
+
+1. Run the native real-data benchmark locally, or explicitly authorize publishing the bounded derived price fixture for CI and confirm redistribution rights. Automatic approval review blocked publishing the fixture to this public repository because those rights are unconfirmed. The original ZIPs and derived price rows remain outside public git.
+2. Apply the actual XSite report template, Calibri 12 and maximum ten body pages. The supplied brief identifies that template but does not include it. REPORT_DRAFT.md supplies content, not a claim of final-format compliance.
+3. Team review and a clean installation rehearsal on the demonstration machine. CI verifies container execution but cannot establish that each teammate's machine works.
+4. Authentic contributions/reflections, required peer review and a rehearsed video of at most ten minutes, with all five members presenting and named. These cannot be fabricated or recorded on the team's behalf.
+5. Sentiment remains an explicitly unvalidated baseline. Independent human labels are needed before making accuracy claims. No trained classifier or authentication requirement was established by the supplied brief.
 
 ## Repository policy
-Development remains on project/quantscore-submission; main is the review baseline. Original large data ZIPs are not committed to this public repository. The final submission package must include the required data. No secrets or user credentials belong in source control.
 
-Attribute-level schema documentation is now in ERD.md. A further workflow check starts the built application container and tests its health/API/static routes; consult its exact run before claiming success.
+Development remains on `project/quantscore-submission`, draft PR https://github.com/derealdme/database/pull/1 . Main is unchanged. Public source contains no original large dataset ZIPs, private derived price fixture or credentials. The private downloadable package includes the original data for the user's team review.
