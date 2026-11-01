@@ -1,0 +1,9 @@
+node_modules/
+__pycache__/
+.pytest_cache/
+.env
+*.pyc
+frontend/dist/
+data/*.zip
+data/**/*.csv
+data/*.csv
