@@ -9,8 +9,8 @@ databases: **MySQL/MariaDB** for the transactional and time-series data, and
 | | |
 |---|---|
 | **Presentation layer** | React 18 + Vite + Recharts |
-| **Application layer** | Python 3.11+ / FastAPI (55 endpoints) |
-| **Relational DB** | MySQL 8 or MariaDB 10.6+ — 12 tables, 7 views, 2 procedures, 2 triggers |
+| **Application layer** | Python 3.11+ / FastAPI (49 endpoints) |
+| **Relational DB** | MySQL 8 or MariaDB 10.6+ — 12 tables, 8 views, 3 procedures, 2 triggers |
 | **Document DB** | MongoDB 7 — 5 collections with validators, compound, text and TTL indexes |
 
 ---
@@ -245,6 +245,8 @@ quantscore/
 │   │   ├── db/mongo.py          collections, validators, indexes
 │   │   ├── services/            the five features + benchmark harness
 │   │   └── routers/             HTTP endpoints
+│   ├── tests/                   unit/ (no DB) and integration/ (RUN_INTEGRATION=1)
+│   ├── requirements-dev.txt     pytest + httpx
 │   └── run.py                   dev server
 ├── etl/
 │   ├── run_all.py               orchestrator
@@ -254,5 +256,6 @@ quantscore/
 │   └── src/{pages,components,lib}
 ├── docker-compose.yml
 ├── .env.example
+├── .github/workflows/ci.yml    unit, integration (MySQL + Mongo), frontend build
 └── docs/SETUP.md               this file
 ```

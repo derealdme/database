@@ -197,6 +197,12 @@ WINDOW p AS (PARTITION BY m.sector_id);
 --     its own trailing 52-week range.
 --
 -- Weights: Valuation 30, Profitability 25, Growth 25, Dividend 20.
+--
+-- HONESTY NOTE: profitability_score and growth_score are proxies.
+--   profitability = earnings yield + EBITDA/market cap (price-based ratios)
+--   growth        = 1-year price return + 52-week range position (momentum)
+-- Column names are kept for API compatibility; UI and docs must label
+-- them as proxies.
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE VIEW v_stock_scores AS
 SELECT
@@ -239,7 +245,7 @@ SELECT
                     ELSE 50 END
     , 2)                                                           AS valuation_score,
 
-    -- ---- Profitability: earnings yield and EBITDA on market cap ----
+    -- ---- Profitability (PROXY): earnings yield, EBITDA / market cap --
     ROUND(
         0.60 * CASE WHEN p.earnings_yield IS NULL OR p.sec_avg_ey IS NULL THEN 50
                     WHEN p.earnings_yield <= 0 THEN 0
@@ -251,7 +257,7 @@ SELECT
                          / (p.ebitda_to_mktcap + p.sec_avg_ebm) END
     , 2)                                                           AS profitability_score,
 
-    -- ---- Growth: 12-month return vs sector + position in 52w range --
+    -- ---- Growth (PROXY, price momentum): 1y return vs sector + 52w range
     ROUND(
         0.65 * CASE WHEN p.ret_1y IS NULL OR p.sec_avg_ret1y IS NULL THEN 50
                     WHEN GREATEST(1 + p.ret_1y, 0)

@@ -4,6 +4,7 @@ import {
 } from '../components/ui'
 import { api, fmt } from '../lib/api'
 import { useApi } from '../lib/hooks'
+import { FACTOR_LABELS } from '../lib/factors'
 
 const NUMERIC = [
   { key: 'market_cap', label: 'Market cap ($)', step: 1e9 },
@@ -324,8 +325,8 @@ export default function Screener() {
                         ['EPS', (s) => fmt.money(s.eps)],
                         ['1-year return', (s) => fmt.pct(s.ret_1y)],
                         ['Valuation', (s) => fmt.num(s.valuation_score, 1)],
-                        ['Profitability', (s) => fmt.num(s.profitability_score, 1)],
-                        ['Growth', (s) => fmt.num(s.growth_score, 1)],
+                        [FACTOR_LABELS.profitability, (s) => fmt.num(s.profitability_score, 1)],
+                        [FACTOR_LABELS.growth, (s) => fmt.num(s.growth_score, 1)],
                         ['Dividend', (s) => fmt.num(s.dividend_score, 1)],
                         ['QuantScore', (s) => fmt.num(s.total_score, 1)],
                         ['Grade', (s) => s.grade],

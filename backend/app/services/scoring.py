@@ -26,6 +26,27 @@ FACTOR_COLUMNS = {
     "dividend": "dividend_score",
 }
 
+# Display labels. The keys above stay "profitability" and "growth" so the
+# API, the SQL views and saved weights keep working, but anything a user
+# reads must say these are price/ratio proxies, not reported fundamentals.
+FACTOR_LABELS = {
+    "valuation": "Valuation",
+    "profitability": "Profitability (proxy)",
+    "growth": "Growth (proxy: price momentum)",
+    "dividend": "Dividend",
+}
+
+FACTOR_NOTES = {
+    "valuation": "P/E, P/S and P/B versus the sector mean.",
+    "profitability": ("Proxy: earnings yield and EBITDA / market cap. Both are "
+                      "divided by price, so this overlaps with valuation; it "
+                      "is not margin or return on equity."),
+    "growth": ("Proxy: 1-year price return versus the sector and position in "
+               "the 52-week range. This is price momentum, not revenue or "
+               "earnings growth."),
+    "dividend": "Dividend yield versus the sector mean.",
+}
+
 FACTOR_INPUTS = {
     "valuation": ["pe_ratio", "price_sales_ratio", "price_book_ratio"],
     "profitability": ["earnings_yield", "ebitda_to_mktcap"],
@@ -135,6 +156,8 @@ def explain(ticker: str, weights: Weights) -> dict | None:
         weight = weights.as_dict()[name]
         factors.append({
             "factor": name,
+            "label": FACTOR_LABELS[name],
+            "note": FACTOR_NOTES[name],
             "score": round(score, 2),
             "weight": round(weight, 4),
             "contribution": round(score * weight, 2),
@@ -161,7 +184,9 @@ def explain(ticker: str, weights: Weights) -> dict | None:
             "Each sub-score compares the company with the mean of its own "
             "sector: 50 is exactly average, above 50 is better than the "
             "sector, below 50 is worse. The headline score is the weighted "
-            "sum of the four sub-scores."
+            "sum of the four sub-scores. Profitability and growth are "
+            "proxies built from price-based ratios and price momentum, "
+            "not from reported margins or revenue growth."
         ),
     }
 

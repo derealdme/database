@@ -113,7 +113,7 @@ export default function Dashboard() {
 
       <div className="grid cols-2" style={{ marginBottom: 16 }}>
         <Card title="Top QuantScores"
-              sub="Default weighting: valuation 30, profitability 25, growth 25, dividend 20"
+              sub="Default weighting: valuation 30, profitability proxy 25, momentum (growth proxy) 25, dividend 20"
               actions={<Link to="/scores" className="muted">View all →</Link>}>
           {top.loading ? <Loading /> : !top.data?.results?.length ? <Empty /> : (
             <div className="table-wrap">

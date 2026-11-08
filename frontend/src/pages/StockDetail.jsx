@@ -9,6 +9,7 @@ import {
 } from '../components/ui'
 import { fmt } from '../lib/api'
 import { useApi } from '../lib/hooks'
+import { FACTOR_SHORT } from '../lib/factors'
 
 const AXIS = { stroke: '#94a3c4', fontSize: 11 }
 const TOOLTIP = {
@@ -37,8 +38,8 @@ export default function StockDetail() {
 
   const radar = [
     { factor: 'Valuation', score: stock.valuation_score, sector: 50 },
-    { factor: 'Profitability', score: stock.profitability_score, sector: 50 },
-    { factor: 'Growth', score: stock.growth_score, sector: 50 },
+    { factor: FACTOR_SHORT.profitability, score: stock.profitability_score, sector: 50 },
+    { factor: FACTOR_SHORT.growth, score: stock.growth_score, sector: 50 },
     { factor: 'Dividend', score: stock.dividend_score, sector: 50 },
   ]
 

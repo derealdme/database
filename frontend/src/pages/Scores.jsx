@@ -4,11 +4,12 @@ import {
 } from '../components/ui'
 import { fmt } from '../lib/api'
 import { useApi } from '../lib/hooks'
+import { FACTOR_LABELS, FACTOR_SHORT, PROXY_NOTE } from '../lib/factors'
 
 const PRESETS = {
   Balanced: { valuation: 0.30, profitability: 0.25, growth: 0.25, dividend: 0.20 },
   Value: { valuation: 0.55, profitability: 0.25, growth: 0.05, dividend: 0.15 },
-  Growth: { valuation: 0.10, profitability: 0.25, growth: 0.60, dividend: 0.05 },
+  Momentum: { valuation: 0.10, profitability: 0.25, growth: 0.60, dividend: 0.05 },
   Income: { valuation: 0.20, profitability: 0.20, growth: 0.05, dividend: 0.55 },
   Quality: { valuation: 0.20, profitability: 0.55, growth: 0.20, dividend: 0.05 },
 }
@@ -41,6 +42,7 @@ export default function Scores() {
             then combined with weights you control. 50 means exactly average
             for the sector — nothing here is a black box.
           </p>
+          <p className="muted" style={{ fontSize: 12 }}>{PROXY_NOTE}</p>
         </div>
       </div>
 
@@ -58,8 +60,8 @@ export default function Scores() {
 
           {Object.entries(w).map(([key, value]) => (
             <div className="field" key={key}>
-              <label style={{ textTransform: 'capitalize' }}>
-                {key} — {(value / total * 100).toFixed(0)}% of the score
+              <label>
+                {FACTOR_LABELS[key]} — {(value / total * 100).toFixed(0)}% of the score
               </label>
               <input type="range" min="0" max="1" step="0.05" value={value}
                      onChange={(e) => setFactor(key, e.target.value)} />
@@ -115,10 +117,10 @@ export default function Scores() {
                   <tr>
                     <th>#</th><th>Ticker</th><th>Company</th><th>Sector</th>
                     <th className="num">Score</th><th>Grade</th>
-                    <th style={{ minWidth: 110 }}>Valuation</th>
-                    <th style={{ minWidth: 110 }}>Profit</th>
-                    <th style={{ minWidth: 110 }}>Growth</th>
-                    <th style={{ minWidth: 110 }}>Dividend</th>
+                    <th style={{ minWidth: 110 }}>{FACTOR_SHORT.valuation}</th>
+                    <th style={{ minWidth: 110 }}>{FACTOR_SHORT.profitability}</th>
+                    <th style={{ minWidth: 110 }}>{FACTOR_SHORT.growth}</th>
+                    <th style={{ minWidth: 110 }}>{FACTOR_SHORT.dividend}</th>
                     <th className="num">1y</th>
                   </tr>
                 </thead>
@@ -176,7 +178,7 @@ export default function Scores() {
                     <tbody>
                       {detail.data.factors.map((f) => (
                         <tr key={f.factor}>
-                          <td style={{ textTransform: 'capitalize' }}>{f.factor}</td>
+                          <td title={f.note}>{f.label || FACTOR_LABELS[f.factor]}</td>
                           <td className="num">{fmt.num(f.score, 1)}</td>
                           <td className="num">{(f.weight * 100).toFixed(0)}%</td>
                           <td className="num" style={{ fontWeight: 650 }}>
