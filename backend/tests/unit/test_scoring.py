@@ -1,4 +1,8 @@
 """Step 2. Weight normalisation and proxy labels. No database needed."""
+import re
+
+import pytest
+
 from app.services.scoring import FACTOR_LABELS, FACTOR_NOTES, Weights
 
 from tests._helpers import todo
@@ -19,17 +23,27 @@ def test_proxy_factors_are_labelled_as_proxies():
 
 # --- Placeholders -------------------------------------------------------
 def test_custom_weights_are_rescaled():
-    todo("step 2", "Weights.normalised(valuation=2, profitability=2, growth=0, "
-         "dividend=0) gives 0.5/0.5/0/0")
+    w = Weights.normalised(valuation=2, profitability=2, growth=0, dividend=0)
+    d = w.as_dict()
+    assert d["valuation"] == pytest.approx(0.5)
+    assert d["profitability"] == pytest.approx(0.5)
+    assert d["growth"] == 0.0
+    assert d["dividend"] == 0.0
 
 
 def test_negative_weights_are_clamped_to_zero():
-    todo("step 2", "a negative weight becomes 0 before rescaling")
+    w = Weights.normalised(valuation=1, profitability=-1, growth=0, dividend=0)
+    assert w.as_dict()["profitability"] == 0.0
 
 
 def test_all_zero_weights_fall_back_to_defaults():
-    todo("step 2", "all-zero input returns Weights() defaults")
+    w = Weights.normalised(valuation=0, profitability=0, growth=0, dividend=0)
+    assert w == Weights()
 
 
 def test_sql_expression_contains_only_column_names_and_floats():
-    todo("step 2", "sql_expression() matches r'^[a-z_]+_score \\* [0-9.]+( \\+ ...)*$'")
+    w = Weights.normalised()
+    assert re.match(
+        r"^[a-z_]+_score \* [0-9.]+( \+ [a-z_]+_score \* [0-9.]+)*$",
+        w.sql_expression(),
+    )
