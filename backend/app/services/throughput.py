@@ -20,7 +20,11 @@ Run from backend/:  python -m app.services.throughput
 from __future__ import annotations
 
 import json
+import math
 import platform
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable
 
 WORKER_LEVELS: tuple[int, ...] = (1, 4, 16, 32)
@@ -35,7 +39,12 @@ def percentile(values: list[float], p: float) -> float:
 
     Example: percentile([1, 2, 3, 4], 50) == 2.0; p=95 on 1..100 == 95.0
     """
-    raise NotImplementedError("INSTRUCTIONS.md step 6")
+    if not values:
+        raise ValueError("percentile() of an empty list")
+    ordered = sorted(values)
+    n = len(ordered)
+    rank = max(1, min(n, math.ceil((p / 100.0) * n)))
+    return float(ordered[rank - 1])
 
 
 def summarise(latencies_ms: list[float], errors: int, wall_s: float) -> dict:
@@ -44,7 +53,21 @@ def summarise(latencies_ms: list[float], errors: int, wall_s: float) -> dict:
     Returns {"requests", "errors", "req_per_s", "p50_ms", "p95_ms"};
     req_per_s = len(latencies_ms) / wall_s, rounded to 1 dp; ms to 2 dp.
     """
-    raise NotImplementedError("INSTRUCTIONS.md step 6")
+    requests = len(latencies_ms)
+    req_per_s = round(requests / wall_s, 1) if wall_s > 0 else 0.0
+    if latencies_ms:
+        p50_ms = round(percentile(latencies_ms, 50), 2)
+        p95_ms = round(percentile(latencies_ms, 95), 2)
+    else:
+        p50_ms = None
+        p95_ms = None
+    return {
+        "requests": requests,
+        "errors": errors,
+        "req_per_s": req_per_s,
+        "p50_ms": p50_ms,
+        "p95_ms": p95_ms,
+    }
 
 
 def run_level(fn: Callable[[], Any], workers: int,
@@ -54,7 +77,44 @@ def run_level(fn: Callable[[], Any], workers: int,
     Each thread records per-call latency in ms and counts exceptions.
     Returns summarise(...) for the combined timings.
     """
-    raise NotImplementedError("INSTRUCTIONS.md step 6")
+    # Warm-up: discard timings so the first connection / cold cache does
+    # not pollute the measured level.
+    warmup_until = time.monotonic() + WARMUP_S
+    while time.monotonic() < warmup_until:
+        try:
+            fn()
+        except Exception:
+            pass
+
+    latencies: list[float] = []
+    errors = 0
+    lock = threading.Lock()
+
+    def worker() -> None:
+        nonlocal errors
+        local_latencies: list[float] = []
+        local_errors = 0
+        end_at = time.monotonic() + duration_s
+        while time.monotonic() < end_at:
+            start = time.perf_counter()
+            try:
+                fn()
+            except Exception:
+                local_errors += 1
+                continue
+            local_latencies.append((time.perf_counter() - start) * 1000)
+        with lock:
+            latencies.extend(local_latencies)
+            errors += local_errors
+
+    wall_start = time.perf_counter()
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = [pool.submit(worker) for _ in range(workers)]
+        for future in futures:
+            future.result()
+    wall_s = time.perf_counter() - wall_start
+
+    return summarise(latencies, errors, wall_s)
 
 
 def _queries(ticker: str) -> dict[tuple[str, str], Callable[[], Any]]:
