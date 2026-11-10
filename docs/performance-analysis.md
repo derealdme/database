@@ -123,10 +123,121 @@ The measurements support the split the application actually uses:
 | Company profiles | MongoDB | Variable schema — a modelling question, not a speed one |
 | Activity logs | MongoDB | TTL expiry, no referential integrity needed |
 
+## Throughput under concurrent load
+
+The results above are single-request latency: one query, measured median of
+seven sequential runs. The proposal also asked for *throughput* — how many
+requests per second each store sustains as concurrent load rises — which is
+a different question. Measured by `backend/app/services/throughput.py`:
+
+- The same 3 of the 7 scenarios above, reused unmodified: point lookup,
+  grouped aggregation, time-series scan (same queries, same indexes, same
+  `bench_news` / `bench_prices` mirrored data as the latency section).
+- 1, 4, 16, 32 concurrent worker threads, each looping the query for a fixed
+  10 s window per level, after a 2 s warm-up (discarded).
+- MySQL's connection pool is `pool_size=10 + max_overflow=20 = 30`, below the
+  32-worker level by design — that figure is reported as measured, not hidden
+  by resizing the pool.
+
+Environment: Python 3.14.3, Darwin/arm64 (Apple Silicon), Docker Desktop,
+MySQL 8.4 and MongoDB 7.0.14 containers on the same host. **A different
+machine from the latency section above** (that was Windows 11) — absolute
+numbers are not comparable between the two sections; the shape of each
+store's scaling curve is.
+
+### Point lookup (50 most recent headlines for one ticker)
+
+| Store | Workers | req/s | p50 ms | p95 ms |
+|---|---|---|---|---|
+| MySQL | 1 | 1,437.7 | 0.69 | 0.72 |
+| MySQL | 4 | 3,046.5 | 1.29 | 1.66 |
+| MySQL | 16 | 3,216.2 | 4.76 | 7.73 |
+| MySQL | 32 | 3,157.2 | 9.02 | 15.23 |
+| MongoDB | 1 | 2,616.3 | 0.34 | 0.58 |
+| MongoDB | 4 | 9,516.3 | 0.41 | 0.57 |
+| MongoDB | 16 | 8,240.9 | 1.79 | 3.70 |
+| MongoDB | 32 | 7,966.8 | 3.63 | 8.24 |
+
+MySQL's throughput is flat from 16 to 32 workers while p50 nearly doubles
+(4.76 → 9.02 ms): the 30-connection pool is close to saturated, so extra
+workers mostly queue. MongoDB peaks at 4 workers (9,516 req/s) and declines
+past that; with no server-side connection ceiling here, the drop is
+client-side — a Python thread pool contending on the GIL for a
+sub-millisecond query, not the database.
+
+### Grouped aggregation (article count + mean sentiment per ticker)
+
+| Store | Workers | req/s | p50 ms | p95 ms |
+|---|---|---|---|---|
+| MySQL | 1 | 7.3 | 135.15 | 143.71 |
+| MySQL | 4 | 8.2 | 481.83 | 532.78 |
+| MySQL | 16 | 7.8 | 2,055.65 | 2,599.21 |
+| MySQL | 32 | 7.8 | 3,863.99 | 4,297.44 |
+| MongoDB | 1 | 10.0 | 99.57 | 101.04 |
+| MongoDB | 4 | 37.3 | 106.42 | 111.38 |
+| MongoDB | 16 | 58.0 | 274.38 | 369.53 |
+| MongoDB | 32 | 56.0 | 560.77 | 691.30 |
+
+The sharpest contrast in the benchmark. MySQL's throughput never rises past
+~8 req/s regardless of worker count — the `GROUP BY … HAVING` is effectively
+serialised server-side, so concurrent clients only queue: p50 grows 28×
+(135 ms → 3,864 ms) for no throughput gain. MongoDB's `$group` pipeline
+scales to 58 req/s at 16 workers (5.8×) before plateauing, with p50 growing
+only 2.8×.
+
+**This conflicts with the latency section above**, which found MySQL 1.8×
+faster than MongoDB on this same query shape (818.77 ms vs 1,509.94 ms,
+`days=2200`). Here, at a single worker, MongoDB is faster (99.57 ms vs
+135.15 ms, `days=365`). Two things differ between the two measurements, not
+one: the machine (Windows 11 vs this Apple Silicon Mac) and the date window
+(2,200 days vs 365 days, which changes how many rows the `HAVING n >= 20`
+aggregation touches). **Before this goes in the report, re-run one of the
+two benchmarks so both use the same machine and the same `days` window** —
+otherwise this table and the "Grouped aggregation … goes to MySQL" claim
+above are not actually comparable, and the report would be asserting two
+different things from two different setups.
+
+### Time-series scan (full price history for one ticker)
+
+| Store | Workers | req/s | p50 ms | p95 ms |
+|---|---|---|---|---|
+| MySQL | 1 | 160.3 | 6.44 | 7.17 |
+| MySQL | 4 | 251.5 | 15.52 | 20.96 |
+| MySQL | 16 | 258.5 | 59.74 | 92.81 |
+| MySQL | 32 | 254.5 | 113.23 | 193.03 |
+| MongoDB | 1 | 370.6 | 2.76 | 3.07 |
+| MongoDB | 4 | 1,911.9 | 1.97 | 2.91 |
+| MongoDB | 16 | 2,020.4 | 7.63 | 12.56 |
+| MongoDB | 32 | 1,972.9 | 15.54 | 26.94 |
+
+Same shape as the point lookup: both stores plateau past 4 workers, but
+MongoDB's plateau sits 7–8× higher than MySQL's (~2,000 vs ~255 req/s) at
+every concurrency level beyond one worker.
+
+### What this adds, and one thing it does not show
+
+- Errors were 0 throughout, including at 32 MySQL workers past the
+  30-connection pool. SQLAlchemy's pool blocks and waits rather than
+  raising, so saturation shows up as latency, not failures — **absence of
+  errors at 32 workers does not mean the pool has spare capacity**, only
+  that it queues instead of rejecting.
+- Point lookup and time-series scan are directionally consistent with the
+  latency section (MongoDB faster, by a wider margin here) — those two are
+  safe to cite together. Grouped aggregation is not, for the reason above,
+  and should be re-measured on one machine before the report cites a
+  specific multiplier for it.
+- These three scenarios were chosen as one representative query per shape
+  (point read, aggregate, range scan); the other 4 scenarios in the latency
+  table (range scan + filter, time bucketing, full-text search, join vs
+  lookup) were not re-run under concurrent load.
+
+Raw results: `docs/throughput.json`.
+
 ## Caveats
 
-- Single machine, no network latency, no concurrent load. These are latency
-  figures, not throughput under contention.
+- Single machine, no network latency. The *latency* section above has no
+  concurrent load; see "Throughput under concurrent load" for req/s under
+  contention.
 - Both engines run in Docker on the same host and compete for CPU; a local
   MariaDB install would differ.
 - The news corpus covers 2018–2020 (the overlap between the price and news

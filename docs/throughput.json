@@ -1,0 +1,251 @@
+{
+  "ticker": "AAPL",
+  "duration_s": 10.0,
+  "environment": {
+    "python": "3.14.3",
+    "machine": "arm64",
+    "system": "Darwin"
+  },
+  "results": [
+    {
+      "store": "mysql",
+      "query": "point_lookup",
+      "workers": 1,
+      "requests": 14377,
+      "errors": 0,
+      "req_per_s": 1437.7,
+      "p50_ms": 0.69,
+      "p95_ms": 0.72
+    },
+    {
+      "store": "mysql",
+      "query": "point_lookup",
+      "workers": 4,
+      "requests": 30469,
+      "errors": 0,
+      "req_per_s": 3046.5,
+      "p50_ms": 1.29,
+      "p95_ms": 1.66
+    },
+    {
+      "store": "mysql",
+      "query": "point_lookup",
+      "workers": 16,
+      "requests": 32189,
+      "errors": 0,
+      "req_per_s": 3216.2,
+      "p50_ms": 4.76,
+      "p95_ms": 7.73
+    },
+    {
+      "store": "mysql",
+      "query": "point_lookup",
+      "workers": 32,
+      "requests": 31707,
+      "errors": 0,
+      "req_per_s": 3157.2,
+      "p50_ms": 9.02,
+      "p95_ms": 15.23
+    },
+    {
+      "store": "mongo",
+      "query": "point_lookup",
+      "workers": 1,
+      "requests": 26166,
+      "errors": 0,
+      "req_per_s": 2616.3,
+      "p50_ms": 0.34,
+      "p95_ms": 0.58
+    },
+    {
+      "store": "mongo",
+      "query": "point_lookup",
+      "workers": 4,
+      "requests": 95171,
+      "errors": 0,
+      "req_per_s": 9516.3,
+      "p50_ms": 0.41,
+      "p95_ms": 0.57
+    },
+    {
+      "store": "mongo",
+      "query": "point_lookup",
+      "workers": 16,
+      "requests": 82438,
+      "errors": 0,
+      "req_per_s": 8240.9,
+      "p50_ms": 1.79,
+      "p95_ms": 3.7
+    },
+    {
+      "store": "mongo",
+      "query": "point_lookup",
+      "workers": 32,
+      "requests": 79834,
+      "errors": 0,
+      "req_per_s": 7966.8,
+      "p50_ms": 3.63,
+      "p95_ms": 8.24
+    },
+    {
+      "store": "mysql",
+      "query": "group_by",
+      "workers": 1,
+      "requests": 74,
+      "errors": 0,
+      "req_per_s": 7.3,
+      "p50_ms": 135.15,
+      "p95_ms": 143.71
+    },
+    {
+      "store": "mysql",
+      "query": "group_by",
+      "workers": 4,
+      "requests": 86,
+      "errors": 0,
+      "req_per_s": 8.2,
+      "p50_ms": 481.83,
+      "p95_ms": 532.78
+    },
+    {
+      "store": "mysql",
+      "query": "group_by",
+      "workers": 16,
+      "requests": 87,
+      "errors": 0,
+      "req_per_s": 7.8,
+      "p50_ms": 2055.65,
+      "p95_ms": 2599.21
+    },
+    {
+      "store": "mysql",
+      "query": "group_by",
+      "workers": 32,
+      "requests": 95,
+      "errors": 0,
+      "req_per_s": 7.8,
+      "p50_ms": 3863.99,
+      "p95_ms": 4297.44
+    },
+    {
+      "store": "mongo",
+      "query": "group_by",
+      "workers": 1,
+      "requests": 101,
+      "errors": 0,
+      "req_per_s": 10.0,
+      "p50_ms": 99.57,
+      "p95_ms": 101.04
+    },
+    {
+      "store": "mongo",
+      "query": "group_by",
+      "workers": 4,
+      "requests": 377,
+      "errors": 0,
+      "req_per_s": 37.3,
+      "p50_ms": 106.42,
+      "p95_ms": 111.38
+    },
+    {
+      "store": "mongo",
+      "query": "group_by",
+      "workers": 16,
+      "requests": 590,
+      "errors": 0,
+      "req_per_s": 58.0,
+      "p50_ms": 274.38,
+      "p95_ms": 369.53
+    },
+    {
+      "store": "mongo",
+      "query": "group_by",
+      "workers": 32,
+      "requests": 578,
+      "errors": 0,
+      "req_per_s": 56.0,
+      "p50_ms": 560.77,
+      "p95_ms": 691.3
+    },
+    {
+      "store": "mysql",
+      "query": "timeseries_scan",
+      "workers": 1,
+      "requests": 1604,
+      "errors": 0,
+      "req_per_s": 160.3,
+      "p50_ms": 6.44,
+      "p95_ms": 7.17
+    },
+    {
+      "store": "mysql",
+      "query": "timeseries_scan",
+      "workers": 4,
+      "requests": 2518,
+      "errors": 0,
+      "req_per_s": 251.5,
+      "p50_ms": 15.52,
+      "p95_ms": 20.96
+    },
+    {
+      "store": "mysql",
+      "query": "timeseries_scan",
+      "workers": 16,
+      "requests": 2596,
+      "errors": 0,
+      "req_per_s": 258.5,
+      "p50_ms": 59.74,
+      "p95_ms": 92.81
+    },
+    {
+      "store": "mysql",
+      "query": "timeseries_scan",
+      "workers": 32,
+      "requests": 2573,
+      "errors": 0,
+      "req_per_s": 254.5,
+      "p50_ms": 113.23,
+      "p95_ms": 193.03
+    },
+    {
+      "store": "mongo",
+      "query": "timeseries_scan",
+      "workers": 1,
+      "requests": 3706,
+      "errors": 0,
+      "req_per_s": 370.6,
+      "p50_ms": 2.76,
+      "p95_ms": 3.07
+    },
+    {
+      "store": "mongo",
+      "query": "timeseries_scan",
+      "workers": 4,
+      "requests": 19124,
+      "errors": 0,
+      "req_per_s": 1911.9,
+      "p50_ms": 1.97,
+      "p95_ms": 2.91
+    },
+    {
+      "store": "mongo",
+      "query": "timeseries_scan",
+      "workers": 16,
+      "requests": 20226,
+      "errors": 0,
+      "req_per_s": 2020.4,
+      "p50_ms": 7.63,
+      "p95_ms": 12.56
+    },
+    {
+      "store": "mongo",
+      "query": "timeseries_scan",
+      "workers": 32,
+      "requests": 19822,
+      "errors": 0,
+      "req_per_s": 1972.9,
+      "p50_ms": 15.54,
+      "p95_ms": 26.94
+    }
+  ]
+}
