@@ -9,7 +9,7 @@ databases: **MySQL/MariaDB** for the transactional and time-series data, and
 | | |
 |---|---|
 | **Presentation layer** | React 18 + Vite + Recharts |
-| **Application layer** | Python 3.11+ / FastAPI (48 endpoints) |
+| **Application layer** | Python 3.11+ / FastAPI (56 endpoints) |
 | **Relational DB** | MySQL 8 or MariaDB 10.6+ — 12 tables, 8 views, 3 procedures, 2 triggers |
 | **Document DB** | MongoDB 7 — 5 collections with validators, compound, text and TTL indexes |
 
@@ -183,7 +183,7 @@ Open **http://localhost:5173**.
 - Many-to-many via `watchlist_stocks`
 - Window functions: `LAG`, `ROW_NUMBER`, `RANK`, `PERCENT_RANK`, and `STDDEV_SAMP` over a 30-row moving frame
 - CTEs inside `sp_refresh_latest_prices()`
-- Seven layered views, each with one responsibility
+- Eight layered views, each with one responsibility
 - Two triggers enforcing rules a `CHECK` cannot express (no short selling, no margin)
 - `sp_execute_trade()` — explicit transaction, `SELECT … FOR UPDATE` row lock, `EXIT HANDLER` with `ROLLBACK` and `RESIGNAL`
 - `FULLTEXT` index for headline search
