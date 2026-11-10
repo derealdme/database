@@ -1,0 +1,100 @@
+
+====================================================================
+  STEP 1  Relational schema
+====================================================================
+  -> CREATE DATABASE + 12 tables, constraints and indexes ...
+     30 statements executed
+     done in 0.2s
+  -> Views, triggers and stored procedures ...
+     19 statements executed
+     done in 0.0s
+
+  Tables (12): bench_news, data_imports, financial_snapshots, portfolios, sectors, stock_latest_price, stock_prices, stocks, transactions, users, watchlist_stocks, watchlists
+  Views  (8): v_latest_snapshot, v_portfolio_holdings, v_portfolio_summary, v_sector_averages, v_stock_metrics, v_stock_metrics_peer, v_stock_scores, v_stock_scores_total
+  Procedures (3): sp_execute_trade, sp_refresh_latest_prices, sp_sector_leaderboard
+  Triggers   (2): trg_txn_before_insert, trg_txn_after_insert
+
+====================================================================
+  STEP 2  Relational data load
+====================================================================
+  constituents file: ../constituents-financials_csv.csv
+  -> sectors + stocks (505 companies) ...
+     done in 0.0s
+  -> financial_snapshots ...
+     505 snapshots as at 2018-02-08 (505 rows had 52-week low/high transposed in the source)
+     done in 0.0s
+  price directory: ../listingdayto2023  (503 files)
+  registered 110 tickers that have prices but no fundamentals (index turnover since the 2018 snapshot)
+  -> stock_prices 2018-01-01 .. 2023-12-31 ...
+       100/503 files, 126,292 rows
+       200/503 files, 272,671 rows
+       300/503 files, 399,369 rows
+       400/503 files, 546,767 rows
+       500/503 files, 694,396 rows
+     done in 12.0s
+     698,614 price rows loaded; 0 rows failed the high>=low check; 0 tickers not in the constituents list
+  -> sp_refresh_latest_prices() -- window-function cache rebuild ...
+     done in 24.8s
+
+  sectors=11  stocks=615  snapshots=505  prices=698,614  cached=501
+  391 companies have both fundamentals and prices and are therefore scored
+
+====================================================================
+  STEP 3  Document store load
+====================================================================
+  -> collections, validators and indexes ...
+     done in 0.0s
+  -> raw_analyst_ratings.csv -> news_articles ...
+       4,997 documents
+       104,965 documents
+     128,398 new documents, 45 duplicates of stories already loaded
+     done in 5.1s
+  -> raw_partner_headlines.csv -> news_articles ...
+       202,853 documents
+       302,166 documents
+     195,643 new documents, 1,396 duplicates of stories already loaded
+     done in 7.4s
+  -> analyst_ratings_processed.csv -> news_articles ...
+     1,077 new documents, 127,266 duplicates of stories already loaded
+     done in 5.9s
+     128,707 duplicate headlines collapsed in total
+  -> company_profiles ...
+     done in 0.0s
+  -> research_notes (samples) ...
+     done in 0.0s
+
+  news_articles=325,118  company_profiles=615  research_notes=3
+  sentiment spread: neutral=236,489  positive=65,995  negative=22,634
+
+====================================================================
+  STEP 4  Benchmark mirrors
+====================================================================
+  -> MongoDB news_articles -> MySQL bench_news (<= 400,000) ...
+     325,118 rows
+     done in 6.1s
+  -> MySQL stock_prices -> MongoDB bench_prices (<= 400,000) ...
+     400,000 documents
+     done in 5.1s
+
+  Both engines now hold identical copies of both datasets.
+
+====================================================================
+  STEP 5  Demo users, portfolios and trades
+====================================================================
+  -> users ...
+     6 users (login as 'demo' / 'demo1234')
+     done in 1.1s
+  -> portfolio + watchlist ...
+     done in 0.0s
+  -> trades via sp_execute_trade() ...
+     8/8 trades executed
+     done in 0.0s
+
+  'Core Holdings': 7 positions, cash $28,935.61, market value $71,026.96, total $99,962.57
+
+====================================================================
+  PIPELINE COMPLETE in 74.0s
+====================================================================
+  Start the API with:   python backend/run.py
+  Start the UI with:    cd frontend && npm run dev
+
