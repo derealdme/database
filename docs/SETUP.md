@@ -9,7 +9,7 @@ databases: **MySQL/MariaDB** for the transactional and time-series data, and
 | | |
 |---|---|
 | **Presentation layer** | React 18 + Vite + Recharts |
-| **Application layer** | Python 3.11+ / FastAPI (49 endpoints) |
+| **Application layer** | Python 3.11+ / FastAPI (48 endpoints) |
 | **Relational DB** | MySQL 8 or MariaDB 10.6+ — 12 tables, 8 views, 3 procedures, 2 triggers |
 | **Document DB** | MongoDB 7 — 5 collections with validators, compound, text and TTL indexes |
 
@@ -50,6 +50,14 @@ INF2003 DATABASE/group/
 ```
 
 If you put them elsewhere, set `DATA_DIR` in `.env` to that folder.
+
+> **Nesting depth matters for the per-ticker price files.** The loader finds
+> the price folder by content (50+ CSVs with ticker-like filenames and a
+> `ticker,date` or `close` header), but it only looks at `DATA_DIR` itself and
+> its *immediate* subfolders — one level, not two. If your Kaggle zip extracted
+> with an extra wrapper folder (e.g. `archive (5)/archive (5)/AAPL.csv` instead
+> of `archive (5)/AAPL.csv`), flatten it one level before running the ETL, or
+> point `DATA_DIR` straight at the folder that directly contains the CSVs.
 
 ---
 
@@ -212,7 +220,7 @@ and `MYSQL_PASSWORD=quantscore` in `.env`.
 | Symptom | Cause and fix |
 |---|---|
 | `(2059) Authentication plugin 'auth_gssapi_client' not configured` | Root uses Windows SSPI, not a password. Run `backend/sql/00_create_user.sql` and use the `quantscore` account (see §3) |
-| `Access denied for user 'root'` | `MYSQL_PASSWORD` in `.env` is wrong |
+| `Access denied for user 'root'` (and `.env` already matches `docker-compose.yml`) | `MYSQL_ROOT_PASSWORD` in `docker-compose.yml` only takes effect the **first** time the `mysql_data` volume is created. If that volume was ever initialised with a different password (an earlier `.env`, a previous clone), the container keeps the old password even after you fix `.env`. Fix: `docker compose down -v` (removes the volume) then `python etl/run_all.py` again — see "Reset everything" below |
 | `Cannot reach MongoDB` | `docker compose up -d`, then `docker compose ps` |
 | `could not locate …` during the ETL | Datasets not extracted, or `DATA_DIR` points at the wrong folder |
 | Sidebar shows "MySQL down" | The API cannot reach the database — check `.env` and the service |
