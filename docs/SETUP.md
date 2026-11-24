@@ -185,7 +185,7 @@ Open **http://localhost:5173**.
 - CTEs inside `sp_refresh_latest_prices()`
 - Eight layered views, each with one responsibility
 - Two triggers enforcing rules a `CHECK` cannot express (no short selling, no margin)
-- `sp_execute_trade()` — explicit transaction, `SELECT … FOR UPDATE` row lock, `EXIT HANDLER` with `ROLLBACK` and `RESIGNAL`
+- `sp_execute_trade()` — explicit transaction, `SELECT … FOR UPDATE` row lock, `EXIT HANDLER` with `ROLLBACK` and `RESIGNAL`, and an optional idempotency key (`client_request_id`, unique per portfolio) so a retried request returns the first trade instead of executing twice
 - `FULLTEXT` index for headline search
 - Every query parameterised; identifiers chosen from allow-lists only
 
@@ -193,7 +193,10 @@ Open **http://localhost:5173**.
 - `$jsonSchema` validator on `news_articles`
 - Compound index `{ticker: 1, published_at: -1}` matching the access pattern
 - Text index for search, TTL index for self-expiring activity logs
-- Aggregation pipelines: `$group`, `$facet`, `$bucket`, `$dateTrunc`, `$lookup`
+- Aggregation pipelines: `$group`, `$facet`, `$bucket`, `$dateTrunc`, `$lookup` (with a sub-pipeline, for the notes digest)
+- `$setWindowFields` rolling average and `$shift` change on the sentiment timeline
+- `sentiment_monthly` materialised view maintained with `$merge`
+- Note tickers checked against MySQL `stocks` before a note is saved
 - Variable-schema `company_profiles` — sector-dependent fields with no migrations
 
 ### Try breaking it

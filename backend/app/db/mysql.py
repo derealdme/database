@@ -80,19 +80,22 @@ def insert_returning_id(sql: str, params: dict | None = None) -> int:
 
 
 def call_trade_procedure(
-    portfolio_id: int, ticker: str, side: str, quantity: float, fee_rate: float
+    portfolio_id: int, ticker: str, side: str, quantity: float, fee_rate: float,
+    request_id: str | None = None,
 ) -> dict:
     """Invoke sp_execute_trade and read back its OUT parameters.
 
     The procedure owns the transaction boundary, the row lock and the
     rollback handler, so the application layer only has to pass the
-    intent through.
+    intent through. ``request_id`` is an optional idempotency key: a
+    repeat call with the same key returns the original trade with
+    ``replayed=True`` and does not execute it again.
     """
     with connection() as conn:
         conn.execute(
             text(
-                "CALL sp_execute_trade(:pid, :ticker, :side, :qty, :fee,"
-                " @out_txn, @out_price, @out_cash)"
+                "CALL sp_execute_trade(:pid, :ticker, :side, :qty, :fee, :rid,"
+                " @out_txn, @out_price, @out_cash, @out_replayed)"
             ),
             {
                 "pid": portfolio_id,
@@ -100,14 +103,17 @@ def call_trade_procedure(
                 "side": side.upper(),
                 "qty": quantity,
                 "fee": fee_rate,
+                "rid": request_id,
             },
         )
         row = conn.execute(
-            text("SELECT @out_txn AS txn, @out_price AS price, @out_cash AS cash")
+            text("SELECT @out_txn AS txn, @out_price AS price, @out_cash AS cash,"
+                 " @out_replayed AS replayed")
         ).mappings().one()
     return {
         "transaction_id": int(row["txn"]) if row["txn"] is not None else None,
         "price": float(row["price"]) if row["price"] is not None else None,
+        "replayed": bool(row["replayed"]),
         "cash_balance": float(row["cash"]) if row["cash"] is not None else None,
     }
 

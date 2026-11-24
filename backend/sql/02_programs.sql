@@ -470,14 +470,19 @@ CREATE PROCEDURE sp_execute_trade(
     IN  p_side         VARCHAR(4),
     IN  p_quantity     DECIMAL(20,6),
     IN  p_fee_rate     DECIMAL(10,6),
+    IN  p_request_id   VARCHAR(64),
     OUT p_transaction_id BIGINT,
     OUT p_price        DECIMAL(20,6),
-    OUT p_cash_after   DECIMAL(20,2)
+    OUT p_cash_after   DECIMAL(20,2),
+    OUT p_replayed     TINYINT
 )
-    COMMENT 'Atomically execute a simulated BUY/SELL against a portfolio'
-BEGIN
+    COMMENT 'Atomically and idempotently execute a simulated BUY/SELL'
+proc: BEGIN
     DECLARE v_stock_id BIGINT;
     DECLARE v_fees     DECIMAL(20,6);
+    DECLARE v_prev_stock BIGINT;
+    DECLARE v_prev_side  VARCHAR(4);
+    DECLARE v_prev_qty   DECIMAL(20,6);
 
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
@@ -502,6 +507,30 @@ BEGIN
 
     IF p_cash_after IS NULL THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'PORTFOLIO_NOT_FOUND';
+    END IF;
+
+    SET p_replayed = 0;
+
+    -- Idempotency: the portfolio row lock above means a retry with the
+    -- same key waits for the first call, then finds its row here.
+    IF p_request_id IS NOT NULL THEN
+        SELECT transaction_id, stock_id, transaction_type, quantity, execution_price
+          INTO p_transaction_id, v_prev_stock, v_prev_side, v_prev_qty, p_price
+          FROM transactions
+         WHERE portfolio_id = p_portfolio_id
+           AND client_request_id = p_request_id;
+
+        IF p_transaction_id IS NOT NULL THEN
+            IF v_prev_side <> p_side OR v_prev_qty <> p_quantity
+               OR NOT (v_prev_stock <=> (SELECT stock_id FROM stocks
+                                          WHERE ticker = UPPER(p_ticker))) THEN
+                SIGNAL SQLSTATE '45000'
+                    SET MESSAGE_TEXT = 'REQUEST_ID_REUSED';
+            END IF;
+            SET p_replayed = 1;
+            COMMIT;
+            LEAVE proc;
+        END IF;
     END IF;
 
     SELECT stock_id INTO v_stock_id
@@ -530,9 +559,11 @@ BEGIN
     SET v_fees = ROUND(p_quantity * p_price * COALESCE(p_fee_rate, 0), 6);
 
     INSERT INTO transactions
-        (portfolio_id, stock_id, transaction_type, quantity, execution_price, fees)
+        (portfolio_id, stock_id, transaction_type, quantity, execution_price, fees,
+         client_request_id)
     VALUES
-        (p_portfolio_id, v_stock_id, p_side, p_quantity, p_price, v_fees);
+        (p_portfolio_id, v_stock_id, p_side, p_quantity, p_price, v_fees,
+         p_request_id);
 
     SET p_transaction_id = LAST_INSERT_ID();
 

@@ -27,6 +27,7 @@ PROFILES = "company_profiles"
 NOTES = "research_notes"
 ACTIVITY = "activity_logs"
 BENCH_PRICES = "bench_prices"
+SENTIMENT_MONTHLY = "sentiment_monthly"
 
 
 def get_client() -> MongoClient:
@@ -121,6 +122,12 @@ def ensure_collections() -> None:
 
     db[BENCH_PRICES].create_index([("ticker", ASCENDING), ("date", ASCENDING)],
                                   name="ix_bench_ticker_date")
+
+    # Materialised view built by news.refresh_sentiment_monthly(). $merge
+    # matches on (ticker, month), and MongoDB requires a unique index on
+    # the fields a $merge matches on.
+    db[SENTIMENT_MONTHLY].create_index([("ticker", ASCENDING), ("month", DESCENDING)],
+                                       name="ux_monthly_ticker_month", unique=True)
 
 
 def log_activity(user_id: int | None, action: str, payload: dict | None = None) -> None:

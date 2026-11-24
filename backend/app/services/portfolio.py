@@ -107,7 +107,7 @@ def transactions(portfolio_id: int, limit: int = 100) -> list[dict]:
 
 
 def execute_trade(portfolio_id: int, ticker: str, side: str,
-                  quantity: float) -> dict:
+                  quantity: float, request_id: str | None = None) -> dict:
     """Run the trade through the stored procedure and translate errors.
 
     The procedure raises SQLSTATE 45000 with a machine-readable prefix;
@@ -115,7 +115,8 @@ def execute_trade(portfolio_id: int, ticker: str, side: str,
     """
     try:
         result = mysql.call_trade_procedure(
-            portfolio_id, ticker, side, quantity, settings.TRADE_FEE_RATE)
+            portfolio_id, ticker, side, quantity, settings.TRADE_FEE_RATE,
+            request_id)
     except (DBAPIError, OperationalError) as exc:
         message = str(exc.orig) if getattr(exc, "orig", None) else str(exc)
         for token, (code, text) in {
@@ -130,6 +131,12 @@ def execute_trade(portfolio_id: int, ticker: str, side: str,
                                     "Portfolio not found"),
             "INVALID_QUANTITY": (status.HTTP_400_BAD_REQUEST, "Invalid quantity"),
             "INVALID_SIDE": (status.HTTP_400_BAD_REQUEST, "Invalid side"),
+            "REQUEST_ID_REUSED": (status.HTTP_409_CONFLICT,
+                                  "client_request_id was already used for a "
+                                  "different trade"),
+            # Backstop if two calls race past the lookup: the UNIQUE key wins.
+            "uq_txn_client_request": (status.HTTP_409_CONFLICT,
+                                      "Duplicate client_request_id"),
         }.items():
             if token in message:
                 raise HTTPException(code, text)

@@ -18,6 +18,7 @@ export default function Notes() {
   })
   const tags = useApi('/notes/tags')
   const activity = useApi('/notes/activity', { limit: 25 })
+  const digest = useApi('/notes/digest', { per_note: 3, limit: 10 })
 
   function toPayload() {
     return {
@@ -40,7 +41,7 @@ export default function Notes() {
     await action.run(fn, editing ? 'Note updated' : 'Note saved')
       .then(() => {
         setForm(BLANK); setEditing(null)
-        notes.reload(); tags.reload(); activity.reload()
+        notes.reload(); tags.reload(); activity.reload(); digest.reload()
       })
       .catch(() => {})
   }
@@ -57,7 +58,7 @@ export default function Notes() {
   async function remove(id) {
     if (!confirm('Delete this note?')) return
     await action.run(() => api.del(`/notes/${id}`), 'Note deleted')
-      .then(() => { notes.reload(); tags.reload(); activity.reload() })
+      .then(() => { notes.reload(); tags.reload(); activity.reload(); digest.reload() })
       .catch(() => {})
   }
 
@@ -227,6 +228,35 @@ export default function Notes() {
                   </div>
                 </div>
               ))}
+          </Card>
+
+          <div style={{ height: 16 }} />
+
+          <Card title="Your tickers in the news"
+                sub="$lookup: each note joined to its ticker's latest headlines">
+            {digest.loading ? <Loading /> : !(digest.data?.digest || []).length ? (
+              <Empty>Add a ticker to a note to see its latest headlines here.</Empty>
+            ) : digest.data.digest.map((d) => (
+              <div key={d._id} style={{ padding: '8px 0',
+                                        borderBottom: '1px solid rgba(37,51,86,0.4)' }}>
+                <div className="row" style={{ gap: 8 }}>
+                  <Ticker symbol={d.ticker} />
+                  <span className="muted">{d.title || 'Untitled note'}</span>
+                  {d.recent_sentiment != null && (
+                    <span className={`num ${d.recent_sentiment > 0 ? 'pos'
+                      : d.recent_sentiment < 0 ? 'neg' : ''}`}>
+                      {fmt.num(d.recent_sentiment, 3)}
+                    </span>
+                  )}
+                </div>
+                {d.latest_news.map((a, i) => (
+                  <div key={i} style={{ fontSize: 12, marginTop: 4 }}>
+                    <span className="muted">{fmt.dateTime(a.published_at)}</span>{' '}
+                    {a.headline}
+                  </div>
+                ))}
+              </div>
+            ))}
           </Card>
         </div>
       </div>

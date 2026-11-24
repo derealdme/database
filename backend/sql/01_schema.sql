@@ -174,6 +174,10 @@ CREATE TABLE transactions (
     execution_price   DECIMAL(20,6) NOT NULL,
     fees              DECIMAL(20,6) NOT NULL DEFAULT 0,
     executed_at       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- Client-supplied idempotency key: a retried request with the same
+    -- key returns the original trade instead of executing it twice.
+    client_request_id VARCHAR(64)   NULL,
+    CONSTRAINT uq_txn_client_request UNIQUE (portfolio_id, client_request_id),
     CONSTRAINT fk_txn_portfolio FOREIGN KEY (portfolio_id)
         REFERENCES portfolios(portfolio_id) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_txn_stock FOREIGN KEY (stock_id)

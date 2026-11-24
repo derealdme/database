@@ -47,11 +47,15 @@ export default function Portfolio() {
   async function submitTrade(e) {
     e.preventDefault()
     if (!form.ticker.trim()) return
+    // One key per submit: if the request is retried (double click, flaky
+    // network) the database returns the first trade instead of a second one.
+    const requestId = crypto.randomUUID()
     await trade.run(
       () => api.post(`/portfolios/${active}/trade`, {
         ticker: form.ticker.trim().toUpperCase(),
         side: form.side,
         quantity: Number(form.quantity),
+        client_request_id: requestId,
       }),
       `${form.side} ${form.quantity} ${form.ticker.toUpperCase()} executed`,
     ).then(refreshAll).catch(() => {})

@@ -36,8 +36,9 @@ def feed(
 @router.get("/timeline")
 def timeline(ticker: str | None = None,
              days: int = Query(180, ge=7, le=3650),
-             granularity: str = Query("week", pattern="^(day|week|month)$")):
-    return {"timeline": service.sentiment_timeline(ticker, days, granularity)}
+             granularity: str = Query("week", pattern="^(day|week|month)$"),
+             window: int = Query(4, ge=1, le=52)):
+    return {"timeline": service.sentiment_timeline(ticker, days, granularity, window)}
 
 
 @router.get("/leaderboard")
@@ -61,6 +62,21 @@ def distribution(ticker: str | None = None):
 @router.get("/summary/{ticker}")
 def summary(ticker: str, days: int = Query(90, ge=7, le=3650)):
     return service.ticker_summary(ticker, days)
+
+
+@router.get("/monthly/{ticker}")
+def monthly(ticker: str, limit: int = Query(24, ge=1, le=120)):
+    """Pre-computed monthly sentiment, read from the $merge-built view."""
+    return {"ticker": ticker.strip().upper(),
+            "months": service.monthly_sentiment(ticker, limit)}
+
+
+@router.post("/monthly/refresh")
+def refresh_monthly(user: dict = Depends(current_user)):
+    """Rebuild sentiment_monthly from news_articles ($group + $merge)."""
+    result = service.refresh_sentiment_monthly()
+    mongo.log_activity(user["user_id"], "news.monthly_refresh", result)
+    return result
 
 
 @router.post("/score")
@@ -113,6 +129,13 @@ def tags(user: dict = Depends(current_user)):
 def activity(limit: int = Query(40, ge=1, le=200),
              user: dict = Depends(current_user)):
     return {"activity": notes_service.recent_activity(user["user_id"], limit)}
+
+
+@notes_router.get("/digest")
+def digest(per_note: int = Query(3, ge=1, le=10), limit: int = Query(20, ge=1, le=100),
+           user: dict = Depends(current_user)):
+    """Notes joined to the latest headlines for their ticker ($lookup)."""
+    return {"digest": notes_service.digest(user["user_id"], per_note, limit)}
 
 
 @notes_router.get("/{note_id}")

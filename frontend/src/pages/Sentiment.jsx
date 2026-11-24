@@ -40,6 +40,8 @@ export default function Sentiment() {
   const board = useApi('/news/leaderboard', { days: 2200, min_articles: 50, limit: 12 })
   const publishers = useApi('/news/publishers', { days: 2200, limit: 10 })
   const dist = useApi('/news/distribution', { ticker: dTicker || undefined })
+  const monthlyTicker = dTicker || 'AAPL'
+  const monthly = useApi(`/news/monthly/${encodeURIComponent(monthlyTicker)}`, { limit: 12 })
 
   async function scoreLive() {
     setScored(await api.post('/news/score', { text: live }))
@@ -96,7 +98,7 @@ export default function Sentiment() {
 
       <div className="grid cols-2" style={{ marginBottom: 16 }}>
         <Card title={`Sentiment over time${dTicker ? ` — ${dTicker}` : ''}`}
-              sub="$dateTrunc + $group aggregation">
+              sub="$dateTrunc + $group, rolling average via $setWindowFields">
           {timeline.loading ? <Loading /> : !timeline.data?.timeline?.length ? (
             <Empty>No headlines in this window.</Empty>
           ) : (
@@ -114,6 +116,9 @@ export default function Sentiment() {
                 <Line yAxisId="right" type="monotone" dataKey="avg_sentiment"
                       stroke="#4f8cff" strokeWidth={2} dot={false}
                       name="Avg sentiment" />
+                <Line yAxisId="right" type="monotone" dataKey="rolling_sentiment"
+                      stroke="#f5a623" strokeWidth={2} strokeDasharray="5 3" dot={false}
+                      name="4-period rolling avg" />
               </ComposedChart>
             </ResponsiveContainer>
           )}
@@ -137,6 +142,37 @@ export default function Sentiment() {
               </BarChart>
             </ResponsiveContainer>
           )}
+        </Card>
+      </div>
+
+      <div style={{ marginBottom: 16 }}>
+        <Card title={`Monthly sentiment — ${monthlyTicker}`}
+              sub="Materialised view: $group + $merge into sentiment_monthly">
+          {monthly.loading ? <Loading /> : monthly.error ? <ErrorBox error={monthly.error} />
+            : !monthly.data?.months?.length ? (
+              <Empty>No monthly rows yet. Run the ETL, or refresh the view.</Empty>
+            ) : (
+              <table>
+                <thead>
+                  <tr><th>Month</th><th className="num">Articles</th>
+                    <th className="num">Positive</th><th className="num">Negative</th>
+                    <th className="num">Avg sentiment</th></tr>
+                </thead>
+                <tbody>
+                  {monthly.data.months.map((m) => (
+                    <tr key={m.month}>
+                      <td>{m.month}</td>
+                      <td className="num muted">{m.articles}</td>
+                      <td className="num pos">{m.positive}</td>
+                      <td className="num neg">{m.negative}</td>
+                      <td className={`num ${m.avg_sentiment > 0 ? 'pos' : m.avg_sentiment < 0 ? 'neg' : ''}`}>
+                        {fmt.num(m.avg_sentiment, 3)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
         </Card>
       </div>
 

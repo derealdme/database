@@ -93,6 +93,7 @@ erDiagram
         decimal  execution_price
         decimal  fees
         datetime executed_at
+        varchar  client_request_id
     }
     WATCHLISTS {
         bigint   watchlist_id PK
@@ -197,6 +198,19 @@ table per sector; as documents it needs neither.
   "created_at": ISODate("…"), "updated_at": ISODate("…") }
 ```
 
+Each note's `ticker` is checked against MySQL `stocks` on create and update
+(an application-level stand-in for a foreign key across the two stores).
+`GET /api/notes/digest` joins every note to the newest headlines for its
+ticker in one pipeline (`$lookup` with a sub-pipeline).
+
+### `sentiment_monthly` — materialised view
+
+One document per `{ticker, month}`: article count, average score, positive and
+negative counts. Rebuilt by `news.refresh_sentiment_monthly()` (ETL step 3, or
+`POST /api/news/monthly/refresh`) with `$group` → `$merge`. A unique index on
+`{ticker: 1, month: -1}` lets `$merge` replace rows in place, so a refresh can
+be re-run safely.
+
 ### `activity_logs` — append-only, self-expiring
 
 A TTL index on `created_at` with `expireAfterSeconds: 2592000` removes rows
@@ -213,6 +227,7 @@ after 30 days with no housekeeping job.
 | News headlines + sentiment | MongoDB | Millions of documents, nested sub-document, optional fields per source |
 | Company profiles | MongoDB | Schema varies by sector |
 | Research notes | MongoDB | Free-form, user-defined fields |
+| Monthly sentiment summary | MongoDB | Derived from news; rebuilt with `$merge`, never edited by users |
 | Activity logs | MongoDB | Append-only, TTL expiry, no referential integrity needed |
 
 Two datasets are deliberately mirrored into both engines

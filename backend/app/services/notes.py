@@ -13,7 +13,7 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from fastapi import HTTPException, status
 
-from app.db import mongo
+from app.db import mongo, mysql
 
 EDITABLE = {"title", "body", "ticker", "tags", "rating", "price_target",
             "conviction", "horizon", "attachments"}
@@ -24,6 +24,19 @@ def _oid(note_id: str) -> ObjectId:
         return ObjectId(note_id)
     except (InvalidId, TypeError):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Malformed note id")
+
+
+def _checked_ticker(ticker: Any) -> str:
+    """Normalise a note's ticker and confirm it exists in MySQL.
+
+    MongoDB cannot hold a foreign key into MySQL, so this is the
+    application-level stand-in for one: a note may only reference a
+    stock the relational store knows about.
+    """
+    symbol = str(ticker).strip().upper()
+    if mysql.query_one("SELECT 1 AS ok FROM stocks WHERE ticker = :t", {"t": symbol}) is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown ticker {symbol}")
+    return symbol
 
 
 def _clean(doc: dict) -> dict:
@@ -66,7 +79,7 @@ def create_note(user_id: int, payload: dict) -> dict:
     now = datetime.utcnow()
     body.update({"user_id": user_id, "created_at": now, "updated_at": now})
     if body.get("ticker"):
-        body["ticker"] = str(body["ticker"]).strip().upper()
+        body["ticker"] = _checked_ticker(body["ticker"])
 
     result = mongo.get_db()[mongo.NOTES].insert_one(body)
     mongo.log_activity(user_id, "note.create",
@@ -80,7 +93,7 @@ def update_note(user_id: int, note_id: str, payload: dict) -> dict:
     if not changes:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Nothing to update")
     if changes.get("ticker"):
-        changes["ticker"] = str(changes["ticker"]).strip().upper()
+        changes["ticker"] = _checked_ticker(changes["ticker"])
     changes["updated_at"] = datetime.utcnow()
 
     result = mongo.get_db()[mongo.NOTES].update_one(
@@ -98,6 +111,43 @@ def delete_note(user_id: int, note_id: str) -> None:
     if result.deleted_count == 0:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Note not found")
     mongo.log_activity(user_id, "note.delete", {"note_id": note_id})
+
+
+def digest(user_id: int, per_note: int = 3, limit: int = 20) -> list[dict]:
+    """Each of the user's ticker notes joined to that ticker's latest headlines.
+
+    One aggregation does the join: $lookup (MongoDB 5+ form, localField/
+    foreignField plus a sub-pipeline) pulls the newest `per_note` articles
+    for the note's ticker, using the {ticker, published_at} index on
+    news_articles, and $addFields averages their sentiment.
+    """
+    pipeline = [
+        {"$match": {"user_id": user_id, "ticker": {"$type": "string", "$ne": ""}}},
+        {"$sort": {"updated_at": -1}},
+        {"$limit": limit},
+        {"$lookup": {
+            "from": mongo.NEWS,
+            "localField": "ticker",
+            "foreignField": "ticker",
+            "pipeline": [
+                {"$sort": {"published_at": -1}},
+                {"$limit": per_note},
+                {"$project": {"_id": 0, "headline": 1, "published_at": 1,
+                              "score": "$sentiment.score", "label": "$sentiment.label"}},
+            ],
+            "as": "latest_news",
+        }},
+        {"$addFields": {"recent_sentiment": {"$round": [{"$avg": "$latest_news.score"}, 4]}}},
+        {"$project": {"user_id": 0, "body": 0, "attachments": 0}},
+    ]
+    out = []
+    for doc in mongo.get_db()[mongo.NOTES].aggregate(pipeline):
+        doc = _clean(doc)
+        for article in doc["latest_news"]:
+            if isinstance(article.get("published_at"), datetime):
+                article["published_at"] = article["published_at"].isoformat()
+        out.append(doc)
+    return out
 
 
 def tag_cloud(user_id: int) -> list[dict]:

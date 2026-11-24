@@ -69,7 +69,9 @@ def trade(portfolio_id: int, body: TradeRequest,
           user: dict = Depends(current_user)):
     assert_owns_portfolio(user["user_id"], portfolio_id)
     result = service.execute_trade(portfolio_id, body.ticker, body.side,
-                                   body.quantity)
+                                   body.quantity, body.client_request_id)
+    if result["trade"]["replayed"]:
+        return result  # already logged when it first executed
     mongo.log_activity(user["user_id"], "portfolio.trade", {
         "portfolio_id": portfolio_id, "ticker": body.ticker,
         "side": body.side, "quantity": body.quantity,

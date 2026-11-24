@@ -98,3 +98,47 @@ def test_check_constraint_rejects_negative_price(priced_stock_id):
             {"s": priced_stock_id},
         )
     assert "chk_price_pos" in str(exc_info.value)
+
+
+def _cash_and_count(pid: int) -> tuple:
+    cash = mysql.query_one(
+        "SELECT cash_balance FROM portfolios WHERE portfolio_id = :p", {"p": pid}
+    )["cash_balance"]
+    n = mysql.query_one(
+        "SELECT COUNT(*) AS n FROM transactions WHERE portfolio_id = :p", {"p": pid}
+    )["n"]
+    return cash, n
+
+
+def test_repeated_request_id_executes_once(portfolio, priced_stock_id):
+    pid = portfolio["portfolio_id"]
+    key = uuid.uuid4().hex
+
+    first = mysql.call_trade_procedure(pid, TEST_TICKER, "BUY", 1, 0.0005, key)
+    assert first["replayed"] is False
+    cash_after_first, n_after_first = _cash_and_count(pid)
+
+    again = mysql.call_trade_procedure(pid, TEST_TICKER, "BUY", 1, 0.0005, key)
+    assert again["replayed"] is True
+    assert again["transaction_id"] == first["transaction_id"]
+    assert _cash_and_count(pid) == (cash_after_first, n_after_first)
+    assert n_after_first == 1
+
+
+def test_request_id_reused_for_different_trade_is_rejected(portfolio, priced_stock_id):
+    pid = portfolio["portfolio_id"]
+    key = uuid.uuid4().hex
+    mysql.call_trade_procedure(pid, TEST_TICKER, "BUY", 1, 0.0005, key)
+    before = _cash_and_count(pid)
+
+    with pytest.raises(DBAPIError) as exc_info:
+        mysql.call_trade_procedure(pid, TEST_TICKER, "BUY", 2, 0.0005, key)
+    assert "REQUEST_ID_REUSED" in str(exc_info.value)
+    assert _cash_and_count(pid) == before
+
+
+def test_trades_without_request_id_are_not_deduplicated(portfolio, priced_stock_id):
+    pid = portfolio["portfolio_id"]
+    mysql.call_trade_procedure(pid, TEST_TICKER, "BUY", 1, 0.0005)
+    mysql.call_trade_procedure(pid, TEST_TICKER, "BUY", 1, 0.0005)
+    assert _cash_and_count(pid)[1] == 2

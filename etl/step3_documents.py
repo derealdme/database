@@ -18,6 +18,7 @@ from pymongo.errors import BulkWriteError
 
 from app.config import settings
 from app.db import mongo, mysql
+from app.services import news as news_service
 from app.services import sentiment
 
 CHUNK = 200_000
@@ -292,6 +293,10 @@ def main() -> None:
         raise SystemExit("No stocks in MySQL -- run step2_relational.py first.")
 
     n_news = load_news(tickers)
+
+    with Timer("sentiment_monthly materialised view ($merge)"):
+        m = news_service.refresh_sentiment_monthly()
+        print(f"     {m['rows']:,} ticker-months across {m['tickers']} tickers")
 
     with Timer("company_profiles"):
         n_profiles = load_profiles()

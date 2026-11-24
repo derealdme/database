@@ -66,11 +66,14 @@ def _latest_timestamp() -> datetime | None:
 # Aggregations
 # ---------------------------------------------------------------------
 def sentiment_timeline(ticker: str | None = None, days: int = 180,
-                       granularity: str = "week") -> list[dict]:
+                       granularity: str = "week", window: int = 4) -> list[dict]:
     """Average sentiment and article volume over time.
 
     $dateTrunc does the bucketing inside MongoDB, so the payload is one
-    document per bucket instead of one per article.
+    document per bucket instead of one per article. $setWindowFields then
+    adds a rolling average over the last `window` buckets and, with $shift,
+    the change from the previous bucket -- the document-store equivalent
+    of SQL's AVG() OVER (ROWS n PRECEDING) and LAG().
     """
     coll = mongo.get_db()[mongo.NEWS]
     latest = _latest_timestamp()
@@ -96,11 +99,25 @@ def sentiment_timeline(ticker: str | None = None, days: int = 180,
                 {"$eq": ["$sentiment.label", "neutral"]}, 1, 0]}},
         }},
         {"$sort": {"_id": 1}},
+        {"$setWindowFields": {
+            "sortBy": {"_id": 1},
+            "output": {
+                "rolling_sentiment": {
+                    "$avg": "$avg_sentiment",
+                    "window": {"documents": [-(max(window, 1) - 1), 0]}},
+                "prev_sentiment": {
+                    "$shift": {"output": "$avg_sentiment", "by": -1, "default": None}},
+            },
+        }},
         {"$project": {
             "_id": 0,
             "period": {"$dateToString": {"format": "%Y-%m-%d", "date": "$_id"}},
             "articles": 1,
             "avg_sentiment": {"$round": ["$avg_sentiment", 4]},
+            "rolling_sentiment": {"$round": ["$rolling_sentiment", 4]},
+            "change": {"$cond": [
+                {"$eq": ["$prev_sentiment", None]}, None,
+                {"$round": [{"$subtract": ["$avg_sentiment", "$prev_sentiment"]}, 4]}]},
             "positive": 1, "negative": 1, "neutral": 1,
             "net_sentiment_pct": {"$round": [
                 {"$multiply": [
@@ -223,6 +240,59 @@ def ticker_summary(ticker: str, days: int = 90) -> dict:
     summary["window_days"] = days
     summary["recent"] = feed(ticker=symbol, limit=8)["articles"]
     return summary
+
+
+# ---------------------------------------------------------------------
+# sentiment_monthly -- a materialised view maintained with $merge
+# ---------------------------------------------------------------------
+def refresh_sentiment_monthly() -> dict:
+    """Rebuild the per-ticker monthly sentiment summary.
+
+    The whole computation runs inside MongoDB: $group buckets every
+    headline by ticker and calendar month, and $merge writes the result
+    into sentiment_monthly, replacing a month's row if it already exists.
+    Re-running it is safe (idempotent), which is what makes it usable as
+    a materialised view -- the document-store counterpart of the
+    stock_latest_price cache that sp_refresh_latest_prices() maintains.
+    """
+    db = mongo.get_db()
+    db[mongo.SENTIMENT_MONTHLY].create_index(
+        [("ticker", 1), ("month", -1)], name="ux_monthly_ticker_month", unique=True)
+    db[mongo.NEWS].aggregate([
+        {"$group": {
+            "_id": {"ticker": "$ticker",
+                    "month": {"$dateTrunc": {"date": "$published_at", "unit": "month"}}},
+            "articles": {"$sum": 1},
+            "avg_sentiment": {"$avg": "$sentiment.score"},
+            "positive": {"$sum": {"$cond": [
+                {"$eq": ["$sentiment.label", "positive"]}, 1, 0]}},
+            "negative": {"$sum": {"$cond": [
+                {"$eq": ["$sentiment.label", "negative"]}, 1, 0]}},
+        }},
+        {"$project": {
+            "_id": 0, "ticker": "$_id.ticker", "month": "$_id.month",
+            "articles": 1, "positive": 1, "negative": 1,
+            "avg_sentiment": {"$round": ["$avg_sentiment", 4]},
+            "refreshed_at": "$$NOW",
+        }},
+        {"$merge": {"into": mongo.SENTIMENT_MONTHLY, "on": ["ticker", "month"],
+                    "whenMatched": "replace", "whenNotMatched": "insert"}},
+    ], allowDiskUse=True)
+    coll = db[mongo.SENTIMENT_MONTHLY]
+    return {"rows": coll.count_documents({}),
+            "tickers": len(coll.distinct("ticker"))}
+
+
+def monthly_sentiment(ticker: str, limit: int = 24) -> list[dict]:
+    """Read the materialised monthly rows for one ticker, newest first."""
+    rows = mongo.get_db()[mongo.SENTIMENT_MONTHLY].find(
+        {"ticker": ticker.strip().upper()},
+        {"_id": 0, "refreshed_at": 0}).sort("month", -1).limit(limit)
+    out = []
+    for r in rows:
+        r["month"] = r["month"].strftime("%Y-%m")
+        out.append(r)
+    return out
 
 
 # ---------------------------------------------------------------------

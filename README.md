@@ -3,7 +3,7 @@
 INF2003 Database Systems group project. An S&P 500 research and paper-trading platform built on two databases:
 
 - **MySQL 8**: stocks, sectors, fundamentals snapshots, daily prices, users, portfolios, transactions, watchlists. 12 tables, 8 views, 3 stored procedures, 2 triggers.
-- **MongoDB 7**: news articles with sentiment, company profiles, research notes, activity logs, benchmark prices. 5 collections with JSON-schema validators.
+- **MongoDB 7**: news articles with sentiment, company profiles, research notes, activity logs, benchmark prices, and a `sentiment_monthly` materialised view. 6 collections; `news_articles` has a `$jsonSchema` validator.
 
 Stack: FastAPI (Python 3.11) + React 18 (Vite). Data: three Kaggle datasets (prices, constituents' financials, financial news headlines).
 

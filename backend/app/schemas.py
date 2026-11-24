@@ -48,6 +48,10 @@ class TradeRequest(BaseModel):
     ticker: str = Field(min_length=1, max_length=10)
     side: Literal["BUY", "SELL"]
     quantity: float = Field(gt=0, le=10_000_000)
+    # Optional idempotency key (e.g. a UUID generated once per click), so a
+    # retried request cannot execute the same trade twice.
+    client_request_id: str | None = Field(
+        default=None, min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
 
     @field_validator("ticker")
     @classmethod
