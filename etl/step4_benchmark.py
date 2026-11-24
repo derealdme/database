@@ -111,7 +111,8 @@ def main() -> None:
         m = mirror_prices_to_mongo()
         print(f"     {m:,} documents")
 
-    print("\n  Both engines now hold identical copies of both datasets.")
+    print("\n  News: both engines hold the same rows. Prices: MongoDB holds only the"
+          f"\n  most recent {PRICE_MIRROR_LIMIT:,} rows, so price scenarios compare a subset.")
 
 
 if __name__ == "__main__":

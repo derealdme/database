@@ -1,4 +1,4 @@
-"""Step 4. Notes CRUD and collection validators (MongoDB)."""
+"""Notes CRUD and collection validators (MongoDB)."""
 import pytest
 from fastapi import HTTPException
 from pymongo.errors import WriteError
@@ -6,7 +6,6 @@ from pymongo.errors import WriteError
 from app.db import mongo
 from app.services import notes
 
-from tests._helpers import todo
 
 pytestmark = pytest.mark.integration
 

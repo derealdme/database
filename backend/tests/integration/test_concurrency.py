@@ -1,4 +1,4 @@
-"""Step 5. Parallel buys on one portfolio."""
+"""Parallel buys on one portfolio."""
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 
@@ -8,7 +8,6 @@ from sqlalchemy.exc import DBAPIError
 from app.db import mysql
 from app.services.portfolio import create_portfolio
 
-from tests._helpers import todo
 
 pytestmark = pytest.mark.integration
 

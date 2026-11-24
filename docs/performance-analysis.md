@@ -45,7 +45,7 @@ configuration, not database technology.
 | Range scan + filter | 236.84 ms | 43.99 ms | **17.22 ms** | 9.57 ms |
 | Grouped aggregation | 2470.13 ms | 2365.31 ms | **818.77 ms** | 1509.94 ms |
 
-Adding `(sentiment_label, published_at)` turned a *33× MongoDB win* on the
+Adding `(sentiment_label, published_at)` turned a *24.7× MongoDB win* on the
 range scan into a *1.8×* one. Raising the buffer pool to match MongoDB's
 cache turned the grouped aggregation from a *1.6× MongoDB win* into a
 *1.8× MySQL win* — the result flipped sides.

@@ -1,7 +1,7 @@
 """SQL vs NoSQL performance analysis endpoints."""
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
 
 from app.services import benchmark as service
 from app.services import throughput
@@ -32,8 +32,5 @@ def index_impact(ticker: str = Query("AAPL", min_length=1, max_length=10),
 @router.get("/throughput")
 def throughput_run(ticker: str = Query("AAPL", min_length=1, max_length=10),
                    duration: float = Query(5.0, ge=1.0, le=30.0)):
-    """Requests/s and p95 at 1, 4, 16, 32 workers. Stub until step 6."""
-    try:
-        return throughput.run(ticker, duration_s=duration)
-    except NotImplementedError as exc:
-        raise HTTPException(501, f"Throughput benchmark not implemented yet ({exc})")
+    """Requests/s, p50 and p95 for each store at 1, 4, 16 and 32 workers."""
+    return throughput.run(ticker, duration_s=duration)

@@ -1,4 +1,4 @@
-"""Step 4. sp_execute_trade, CHECK constraints and triggers (MySQL)."""
+"""sp_execute_trade, CHECK constraints and triggers (MySQL)."""
 import uuid
 
 import pytest
@@ -7,7 +7,6 @@ from sqlalchemy.exc import DBAPIError
 from app.db import mysql
 from app.services.portfolio import create_portfolio
 
-from tests._helpers import todo
 
 pytestmark = pytest.mark.integration
 

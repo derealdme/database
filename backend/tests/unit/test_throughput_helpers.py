@@ -1,9 +1,8 @@
-"""Step 6. Pure helpers in app/services/throughput.py. No database needed."""
+"""Pure helpers in app/services/throughput.py. No database needed."""
 import pytest
 
 from app.services.throughput import percentile, summarise
 
-from tests._helpers import todo
 
 
 def test_percentile_nearest_rank():

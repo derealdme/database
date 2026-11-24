@@ -1,4 +1,4 @@
-"""Step 3. Tiny seed for CI (the Kaggle data is not in the repo).
+"""Tiny seed for CI (the Kaggle data is not in the repo).
 
 Run from backend/ after the schema is loaded:  python tests/fixtures/seed_ci.py
 Inserts: 2 sectors, 3 stocks (AAPL, MSFT, XOM), 1 financial_snapshot each,

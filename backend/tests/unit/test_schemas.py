@@ -1,10 +1,9 @@
-"""Step 2. Pydantic request validation. No database needed."""
+"""Pydantic request validation. No database needed."""
 import pytest
 from pydantic import ValidationError
 
 from app.schemas import NoteCreate, RegisterRequest, ScreenerRequest, TradeRequest
 
-from tests._helpers import todo
 
 
 def test_register_rejects_bad_username():

@@ -1,10 +1,10 @@
-"""Throughput benchmark (STUB -- see INSTRUCTIONS.md step 6).
+"""Throughput benchmark: requests/s and latency percentiles under concurrent load.
 
 benchmark.py measures single-request latency. The proposal also promised
 throughput, so this module answers a different question: how many
 requests per second each store sustains as concurrency rises.
 
-Design (fixed, do not change):
+Design:
   * Same 3 queries per store, reused from benchmark._scenarios so both
     files measure the same thing: point_lookup, group_by, timeseries_scan.
   * Worker levels 1, 4, 16, 32, run with a ThreadPoolExecutor.

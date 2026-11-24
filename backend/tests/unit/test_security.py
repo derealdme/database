@@ -1,10 +1,9 @@
-"""Step 2. bcrypt and JWT. No database needed (do not call current_user)."""
+"""bcrypt and JWT. No database needed (do not call current_user)."""
 import pytest
 from fastapi import HTTPException
 
 from app.core.security import _decode, create_access_token, hash_password, verify_password
 
-from tests._helpers import todo
 
 
 def test_hash_then_verify_roundtrip():

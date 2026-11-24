@@ -1,5 +1,5 @@
-# CI skeleton. Steps marked TODO are finished in INSTRUCTIONS.md step 3.
-# Unit job is expected to be red until step 2 replaces the placeholder tests.
+# CI: unit tests (no database), integration tests against real MySQL 8.4 and
+# MongoDB 7.0 service containers seeded with a tiny fixture, and a frontend build.
 name: CI
 
 on:
@@ -55,7 +55,7 @@ jobs:
         run: cd ../etl && python step1_schema.py
       - name: Create Mongo collections, validators, indexes
         run: python -c "from app.db import mongo; mongo.ensure_collections()"
-      - name: Seed tiny fixture (TODO step 3)
+      - name: Seed tiny fixture
         run: python tests/fixtures/seed_ci.py
       - run: pytest -q tests/integration
 
