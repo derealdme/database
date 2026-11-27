@@ -43,7 +43,14 @@ export function useAction() {
   const [message, setMessage] = useState(null)
   const alive = useRef(true)
 
-  useEffect(() => () => { alive.current = false }, [])
+  // Set the flag in the effect body as well as clearing it in cleanup:
+  // React StrictMode (dev) mounts, unmounts and remounts every component,
+  // and without this the flag stays false after the remount, so `pending`
+  // never resets and the button stays disabled after the first action.
+  useEffect(() => {
+    alive.current = true
+    return () => { alive.current = false }
+  }, [])
 
   const run = useCallback(async (fn, successMessage) => {
     setPending(true); setError(null); setMessage(null)
